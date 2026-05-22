@@ -44,6 +44,13 @@ final class MenuBarController: NSObject {
         menu.addItem(titleItem)
         menu.addItem(.separator())
 
+        if let storageErrorMessage = environment.appState.storageErrorMessage {
+            let storageErrorItem = NSMenuItem(title: storageErrorMessage, action: nil, keyEquivalent: "")
+            storageErrorItem.isEnabled = false
+            menu.addItem(storageErrorItem)
+            menu.addItem(.separator())
+        }
+
         let workspacesItem = NSMenuItem(title: MenuBarCommands.workspacesTitle, action: nil, keyEquivalent: "")
         workspacesItem.isEnabled = false
         menu.addItem(workspacesItem)
