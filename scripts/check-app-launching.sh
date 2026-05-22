@@ -16,6 +16,9 @@ swiftc \
   "$ROOT_DIR/Reopen/Runner/FileFolderOpener.swift" \
   "$ROOT_DIR/Reopen/Runner/URLNormalizer.swift" \
   "$ROOT_DIR/Reopen/Runner/URLOpener.swift" \
+  "$ROOT_DIR/Reopen/Runner/TerminalCommandSafety.swift" \
+  "$ROOT_DIR/Reopen/Runner/AppleScriptTerminalExecutor.swift" \
+  "$ROOT_DIR/Reopen/Runner/TerminalManager.swift" \
   "$ROOT_DIR/Reopen/Runner/WorkspaceAppRunner.swift" \
   "$ROOT_DIR/scripts/check-app-launching.swift" \
   -o "$OUTPUT"

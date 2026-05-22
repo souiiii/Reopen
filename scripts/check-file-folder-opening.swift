@@ -116,6 +116,10 @@ enum FileFolderOpeningChecks {
                 return true
             }),
             urlOpener: URLOpener(openURL: { _ in true }),
+            terminalManager: TerminalManager(
+                executor: AppleScriptTerminalExecutor(executeAppleScript: { _ in .success }),
+                confirmationProvider: { _, _ in true }
+            ),
             errorLogger: ErrorLogger()
         )
         let workspace = Workspace(

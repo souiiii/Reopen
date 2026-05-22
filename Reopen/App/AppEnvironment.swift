@@ -39,6 +39,7 @@ final class AppEnvironment {
             appLauncher: AppLauncher(),
             fileFolderOpener: FileFolderOpener(),
             urlOpener: URLOpener(),
+            terminalManager: TerminalManager(),
             errorLogger: ErrorLogger()
         )
 

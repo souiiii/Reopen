@@ -94,6 +94,7 @@ struct ActionEditorView: View {
                     }
                 }
             }
+            Toggle("Ask before running", isOn: $action.requiresConfirmation)
         }
     }
 

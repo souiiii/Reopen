@@ -4,17 +4,20 @@ final class WorkspaceAppRunner {
     private let appLauncher: AppLauncher
     private let fileFolderOpener: FileFolderOpener
     private let urlOpener: URLOpener
+    private let terminalManager: TerminalManager
     private let errorLogger: ErrorLogger
 
     init(
         appLauncher: AppLauncher,
         fileFolderOpener: FileFolderOpener,
         urlOpener: URLOpener,
+        terminalManager: TerminalManager,
         errorLogger: ErrorLogger
     ) {
         self.appLauncher = appLauncher
         self.fileFolderOpener = fileFolderOpener
         self.urlOpener = urlOpener
+        self.terminalManager = terminalManager
         self.errorLogger = errorLogger
     }
 
@@ -49,12 +52,17 @@ final class WorkspaceAppRunner {
             append(urlOpener.open(urlAction), to: &result)
         }
 
+        for terminalAction in terminalActions(in: workspace) {
+            didRunLaunchableAction = true
+            append(terminalManager.run(terminalAction), to: &result)
+        }
+
         if !didRunLaunchableAction {
             let skippedResult = ActionLaunchResult(
                 actionType: "workspace",
                 title: "Workspace Launch",
                 status: .skipped,
-                message: "No app, file, folder, or URL actions are saved in this workspace."
+                message: "No app, file, folder, URL, or terminal command actions are saved in this workspace."
             )
             append(skippedResult, to: &result)
         }
@@ -105,6 +113,16 @@ final class WorkspaceAppRunner {
     private func urlActions(in workspace: Workspace) -> [OpenURLAction] {
         workspace.actions.compactMap { action in
             if case .openURL(let payload) = action {
+                return payload
+            }
+
+            return nil
+        }
+    }
+
+    private func terminalActions(in workspace: Workspace) -> [TerminalCommandAction] {
+        workspace.actions.compactMap { action in
+            if case .terminalCommand(let payload) = action {
                 return payload
             }
 

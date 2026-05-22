@@ -94,6 +94,10 @@ enum URLOpeningChecks {
                 openedURLs.append(url)
                 return true
             }),
+            terminalManager: TerminalManager(
+                executor: AppleScriptTerminalExecutor(executeAppleScript: { _ in .success }),
+                confirmationProvider: { _, _ in true }
+            ),
             errorLogger: ErrorLogger()
         )
         let workspace = Workspace(
@@ -126,6 +130,10 @@ enum URLOpeningChecks {
                 openedURLs.append(url)
                 return true
             }),
+            terminalManager: TerminalManager(
+                executor: AppleScriptTerminalExecutor(executeAppleScript: { _ in .success }),
+                confirmationProvider: { _, _ in true }
+            ),
             errorLogger: ErrorLogger()
         )
         let workspace = Workspace(

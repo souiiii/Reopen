@@ -152,6 +152,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
     var displayTitle = ""
     var command = ""
     var workingDirectory = ""
+    var requiresConfirmation = true
     var scriptPath = ""
 
     var title: String {
@@ -183,6 +184,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         displayTitle: String = "",
         command: String = "",
         workingDirectory: String = "",
+        requiresConfirmation: Bool = true,
         scriptPath: String = ""
     ) {
         self.id = id
@@ -195,6 +197,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         self.displayTitle = displayTitle
         self.command = command
         self.workingDirectory = workingDirectory
+        self.requiresConfirmation = requiresConfirmation
         self.scriptPath = scriptPath
     }
 
@@ -237,7 +240,8 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
                 kind: .terminalCommand,
                 name: payload.name,
                 command: payload.command,
-                workingDirectory: payload.workingDirectory
+                workingDirectory: payload.workingDirectory,
+                requiresConfirmation: payload.requiresConfirmation
             )
         case .openVSCodeProject(let payload):
             self.init(
@@ -334,7 +338,8 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
                 id: id,
                 name: try require(name, field: "command name"),
                 command: try require(command, field: "terminal command"),
-                workingDirectory: try require(workingDirectory, field: "working directory")
+                workingDirectory: try require(workingDirectory, field: "working directory"),
+                requiresConfirmation: requiresConfirmation
             ))
         case .openVSCodeProject:
             return .openVSCodeProject(OpenVSCodeProjectAction(
