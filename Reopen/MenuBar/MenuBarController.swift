@@ -64,10 +64,10 @@ final class MenuBarController: NSObject {
             emptyItem.isEnabled = false
             menu.addItem(emptyItem)
         } else {
-            for workspaceName in environment.appState.workspaceNames {
-                let item = NSMenuItem(title: workspaceName, action: #selector(launchWorkspace(_:)), keyEquivalent: "")
+            for workspace in environment.appState.workspaces {
+                let item = NSMenuItem(title: workspace.name, action: #selector(launchWorkspace(_:)), keyEquivalent: "")
                 item.target = self
-                item.representedObject = workspaceName
+                item.representedObject = workspace.id
                 item.isEnabled = true
                 menu.addItem(item)
             }
@@ -101,11 +101,15 @@ final class MenuBarController: NSObject {
     }
 
     @objc private func launchWorkspace(_ sender: NSMenuItem) {
-        guard let workspaceName = sender.representedObject as? String else {
+        guard
+            let workspaceID = sender.representedObject as? UUID,
+            let workspace = environment.workspaceManager.getWorkspace(id: workspaceID)
+        else {
             return
         }
 
-        environment.windowPresenter.show(.launchWorkspace(workspaceName))
+        let result = environment.workspaceAppRunner.launchAppActions(in: workspace)
+        environment.windowPresenter.showLaunchResult(result)
     }
 
     @objc private func createWorkspace() {

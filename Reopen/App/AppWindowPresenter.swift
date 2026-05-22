@@ -7,6 +7,7 @@ final class AppWindowPresenter {
     private var workspaceCreationController: WorkspaceEditorWindowController?
     private var workspaceEditingControllers: [UUID: WorkspaceEditorWindowController] = [:]
     private var workspaceManagementController: ManageWorkspacesWindowController?
+    private var launchResultControllers: [UUID: LaunchResultWindowController] = [:]
 
     func showWorkspaceCreation(workspaceManager: WorkspaceManager) {
         if let existingController = workspaceCreationController {
@@ -59,6 +60,17 @@ final class AppWindowPresenter {
             }
         )
         workspaceManagementController = controller
+        controller.showWindow(nil)
+    }
+
+    func showLaunchResult(_ result: WorkspaceLaunchResult) {
+        let controller = LaunchResultWindowController(
+            result: result,
+            onClose: { [weak self] in
+                self?.launchResultControllers[result.id] = nil
+            }
+        )
+        launchResultControllers[result.id] = controller
         controller.showWindow(nil)
     }
 

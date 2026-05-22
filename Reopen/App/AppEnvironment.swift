@@ -6,17 +6,20 @@ final class AppEnvironment {
     let windowPresenter: AppWindowPresenter
     let workspaceStore: WorkspaceStore
     let workspaceManager: WorkspaceManager
+    let workspaceAppRunner: WorkspaceAppRunner
 
     private init(
         appState: AppState,
         windowPresenter: AppWindowPresenter,
         workspaceStore: WorkspaceStore,
-        workspaceManager: WorkspaceManager
+        workspaceManager: WorkspaceManager,
+        workspaceAppRunner: WorkspaceAppRunner
     ) {
         self.appState = appState
         self.windowPresenter = windowPresenter
         self.workspaceStore = workspaceStore
         self.workspaceManager = workspaceManager
+        self.workspaceAppRunner = workspaceAppRunner
     }
 
     static func bootstrap() -> AppEnvironment {
@@ -32,6 +35,10 @@ final class AppEnvironment {
             workspaceStore: workspaceStore,
             initialWorkspaces: loadResult.workspaces
         )
+        let workspaceAppRunner = WorkspaceAppRunner(
+            appLauncher: AppLauncher(),
+            errorLogger: ErrorLogger()
+        )
 
         workspaceManager.onWorkspacesChanged = { [appState] workspaces in
             appState.replaceWorkspaces(workspaces)
@@ -44,7 +51,8 @@ final class AppEnvironment {
             appState: appState,
             windowPresenter: AppWindowPresenter(),
             workspaceStore: workspaceStore,
-            workspaceManager: workspaceManager
+            workspaceManager: workspaceManager,
+            workspaceAppRunner: workspaceAppRunner
         )
     }
 }
