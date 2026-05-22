@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUTPUT="$ROOT_DIR/.build/url-opening-checks"
+
+mkdir -p "$ROOT_DIR/.build"
+
+swiftc \
+  "$ROOT_DIR/Reopen/Workspaces/Models/Workspace.swift" \
+  "$ROOT_DIR/Reopen/Workspaces/Models/WorkspaceAction.swift" \
+  "$ROOT_DIR/Reopen/Workspaces/Models/WindowLayout.swift" \
+  "$ROOT_DIR/Reopen/Workspaces/Models/LaunchResult.swift" \
+  "$ROOT_DIR/Reopen/Logging/ErrorLogger.swift" \
+  "$ROOT_DIR/Reopen/Runner/AppLauncher.swift" \
+  "$ROOT_DIR/Reopen/Runner/FileFolderOpener.swift" \
+  "$ROOT_DIR/Reopen/Runner/URLNormalizer.swift" \
+  "$ROOT_DIR/Reopen/Runner/URLOpener.swift" \
+  "$ROOT_DIR/Reopen/Runner/WorkspaceAppRunner.swift" \
+  "$ROOT_DIR/Reopen/WorkspaceEditor/WorkspaceCreationDraft.swift" \
+  "$ROOT_DIR/scripts/check-url-opening.swift" \
+  -o "$OUTPUT"
+
+"$OUTPUT"

@@ -37,8 +37,8 @@ enum AppLaunchingChecks {
         try missingAppFailsGracefully(temporaryDirectory: temporaryDirectory)
         try invalidAppPathFailsGracefully(invalidURL: invalidURL)
         try failedOpenApplicationIsReported(fakeAppURL: fakeAppURL)
-        try workspaceRunnerLaunchesOnlyAppActions(fakeAppURL: fakeAppURL)
-        try workspaceRunnerReportsSkippedWhenNoAppActions()
+        try workspaceRunnerStillLaunchesAppActions(fakeAppURL: fakeAppURL)
+        try urlOnlyWorkspaceIsLaunchableAfterPhaseTwelve()
 
         print("App launching checks passed.")
     }
@@ -81,15 +81,19 @@ enum AppLaunchingChecks {
         try check(result.errorCode == "app_launch_failed", "Open failure should use app_launch_failed error code.")
     }
 
-    private static func workspaceRunnerLaunchesOnlyAppActions(fakeAppURL: URL) throws {
+    private static func workspaceRunnerStillLaunchesAppActions(fakeAppURL: URL) throws {
         var openedURLs: [URL] = []
+        var openedWebURLs: [URL] = []
         let runner = WorkspaceAppRunner(
             appLauncher: AppLauncher(openApplication: { url in
                 openedURLs.append(url)
                 return true
             }),
             fileFolderOpener: FileFolderOpener(openResource: { _ in true }),
-            urlOpener: URLOpener(openURL: { _ in true }),
+            urlOpener: URLOpener(openURL: { url in
+                openedWebURLs.append(url)
+                return true
+            }),
             errorLogger: ErrorLogger()
         )
         let workspace = Workspace(
@@ -102,12 +106,13 @@ enum AppLaunchingChecks {
 
         let result = runner.launchAppActions(in: workspace)
 
-        try check(openedURLs == [fakeAppURL], "Phase 10 runner should launch saved app actions.")
-        try check(result.actionResults.count == 1, "Phase 10 runner should not execute non-app actions yet.")
+        try check(openedURLs == [fakeAppURL], "Runner should still launch saved app actions.")
+        try check(openedWebURLs.map(\.absoluteString) == ["https://example.com"], "Runner should now launch URL actions after Phase 12.")
+        try check(result.actionResults.count == 2, "Runner should report app and URL actions.")
         try check(result.actionResults.first?.status == .succeeded, "App action result should be successful.")
     }
 
-    private static func workspaceRunnerReportsSkippedWhenNoAppActions() throws {
+    private static func urlOnlyWorkspaceIsLaunchableAfterPhaseTwelve() throws {
         let runner = WorkspaceAppRunner(
             appLauncher: AppLauncher(openApplication: { _ in true }),
             fileFolderOpener: FileFolderOpener(openResource: { _ in true }),
@@ -123,7 +128,7 @@ enum AppLaunchingChecks {
 
         let result = runner.launchAppActions(in: workspace)
 
-        try check(result.actionResults.count == 1, "Workspace with no app actions should produce a skipped result.")
+        try check(result.actionResults.count == 1, "URL-only workspace should produce a URL result.")
         try check(result.actionResults.first?.status == .succeeded, "URL-only workspace should now launch in Phase 12.")
     }
 }

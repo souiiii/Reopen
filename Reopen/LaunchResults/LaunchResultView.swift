@@ -11,7 +11,7 @@ struct LaunchResultView: View {
                     .font(.title2)
                     .fontWeight(.semibold)
 
-                Text(result.hasFailures ? "Some actions need attention." : "App actions finished.")
+                Text(result.hasFailures ? "Some actions need attention." : "Launch actions finished.")
                     .foregroundStyle(.secondary)
             }
 
