@@ -88,6 +88,8 @@ enum AppLaunchingChecks {
                 openedURLs.append(url)
                 return true
             }),
+            fileFolderOpener: FileFolderOpener(openResource: { _ in true }),
+            urlOpener: URLOpener(openURL: { _ in true }),
             errorLogger: ErrorLogger()
         )
         let workspace = Workspace(
@@ -108,6 +110,8 @@ enum AppLaunchingChecks {
     private static func workspaceRunnerReportsSkippedWhenNoAppActions() throws {
         let runner = WorkspaceAppRunner(
             appLauncher: AppLauncher(openApplication: { _ in true }),
+            fileFolderOpener: FileFolderOpener(openResource: { _ in true }),
+            urlOpener: URLOpener(openURL: { _ in true }),
             errorLogger: ErrorLogger()
         )
         let workspace = Workspace(
@@ -120,6 +124,6 @@ enum AppLaunchingChecks {
         let result = runner.launchAppActions(in: workspace)
 
         try check(result.actionResults.count == 1, "Workspace with no app actions should produce a skipped result.")
-        try check(result.actionResults.first?.status == .skipped, "Workspace with no app actions should be skipped.")
+        try check(result.actionResults.first?.status == .succeeded, "URL-only workspace should now launch in Phase 12.")
     }
 }

@@ -147,6 +147,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
     var name = ""
     var path = ""
     var bundleIdentifier: String?
+    var securityScopedBookmarkData: Data?
     var url = ""
     var displayTitle = ""
     var command = ""
@@ -161,7 +162,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
             if !displayTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 return displayTitle
             }
-            return url.isEmpty ? kind.title : url
+            return URLNormalizer.displayTitle(for: url)
         case .terminalCommand:
             return name.isEmpty ? kind.title : name
         case .openVSCodeProject:
@@ -177,6 +178,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         name: String = "",
         path: String = "",
         bundleIdentifier: String? = nil,
+        securityScopedBookmarkData: Data? = nil,
         url: String = "",
         displayTitle: String = "",
         command: String = "",
@@ -188,6 +190,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         self.name = name
         self.path = path
         self.bundleIdentifier = bundleIdentifier
+        self.securityScopedBookmarkData = securityScopedBookmarkData
         self.url = url
         self.displayTitle = displayTitle
         self.command = command
@@ -206,9 +209,21 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
                 bundleIdentifier: payload.bundleIdentifier
             )
         case .openFile(let payload):
-            self.init(id: payload.id, kind: .openFile, name: payload.name, path: payload.path)
+            self.init(
+                id: payload.id,
+                kind: .openFile,
+                name: payload.name,
+                path: payload.path,
+                securityScopedBookmarkData: payload.securityScopedBookmarkData
+            )
         case .openFolder(let payload):
-            self.init(id: payload.id, kind: .openFolder, name: payload.name, path: payload.path)
+            self.init(
+                id: payload.id,
+                kind: .openFolder,
+                name: payload.name,
+                path: payload.path,
+                securityScopedBookmarkData: payload.securityScopedBookmarkData
+            )
         case .openURL(let payload):
             self.init(
                 id: payload.id,
@@ -250,12 +265,22 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         )
     }
 
-    static func file(name: String, path: String) -> WorkspaceActionDraft {
-        WorkspaceActionDraft(kind: .openFile, name: name, path: path)
+    static func file(name: String, path: String, securityScopedBookmarkData: Data? = nil) -> WorkspaceActionDraft {
+        WorkspaceActionDraft(
+            kind: .openFile,
+            name: name,
+            path: path,
+            securityScopedBookmarkData: securityScopedBookmarkData
+        )
     }
 
-    static func folder(name: String, path: String) -> WorkspaceActionDraft {
-        WorkspaceActionDraft(kind: .openFolder, name: name, path: path)
+    static func folder(name: String, path: String, securityScopedBookmarkData: Data? = nil) -> WorkspaceActionDraft {
+        WorkspaceActionDraft(
+            kind: .openFolder,
+            name: name,
+            path: path,
+            securityScopedBookmarkData: securityScopedBookmarkData
+        )
     }
 
     static func url() -> WorkspaceActionDraft {
@@ -283,25 +308,27 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
             return .openFile(OpenFileAction(
                 id: id,
                 name: try require(name, field: "file name"),
-                path: try require(path, field: "file path")
+                path: try require(path, field: "file path"),
+                securityScopedBookmarkData: securityScopedBookmarkData
             ))
         case .openFolder:
             return .openFolder(OpenFolderAction(
                 id: id,
                 name: try require(name, field: "folder name"),
-                path: try require(path, field: "folder path")
+                path: try require(path, field: "folder path"),
+                securityScopedBookmarkData: securityScopedBookmarkData
             ))
         case .openURL:
-            let trimmedURL = try require(url, field: "URL")
-            guard trimmedURL != "https://", trimmedURL != "http://" else {
-                throw WorkspaceCreationError.invalidAction("URL is missing address.")
+            do {
+                let normalizedURL = try URLNormalizer.normalizedURL(from: url)
+                return .openURL(OpenURLAction(
+                    id: id,
+                    url: normalizedURL.absoluteString,
+                    displayTitle: optionalTrimmed(displayTitle)
+                ))
+            } catch let error as URLNormalizationError {
+                throw WorkspaceCreationError.invalidAction(error.userFacingMessage)
             }
-
-            return .openURL(OpenURLAction(
-                id: id,
-                url: trimmedURL,
-                displayTitle: optionalTrimmed(displayTitle)
-            ))
         case .terminalCommand:
             return .terminalCommand(TerminalCommandAction(
                 id: id,

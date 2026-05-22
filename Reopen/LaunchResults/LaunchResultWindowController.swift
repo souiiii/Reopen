@@ -6,10 +6,17 @@ final class LaunchResultWindowController: NSWindowController, NSWindowDelegate {
     private let onClose: () -> Void
     private var didClose = false
 
-    init(result: WorkspaceLaunchResult, onClose: @escaping () -> Void) {
+    init(
+        result: WorkspaceLaunchResult,
+        onRepair: @escaping (ActionLaunchResult) -> Void,
+        onClose: @escaping () -> Void
+    ) {
         self.onClose = onClose
 
-        let window = NSWindow(contentViewController: NSHostingController(rootView: LaunchResultView(result: result)))
+        let window = NSWindow(contentViewController: NSHostingController(rootView: LaunchResultView(
+            result: result,
+            onRepair: onRepair
+        )))
         window.title = "\(result.workspaceName) Launch Result"
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false

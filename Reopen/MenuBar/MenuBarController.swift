@@ -108,8 +108,11 @@ final class MenuBarController: NSObject {
             return
         }
 
-        let result = environment.workspaceAppRunner.launchAppActions(in: workspace)
-        environment.windowPresenter.showLaunchResult(result)
+        let result = environment.workspaceAppRunner.launchWorkspaceActions(in: workspace)
+        environment.windowPresenter.showLaunchResult(
+            result,
+            workspaceManager: environment.workspaceManager
+        )
     }
 
     @objc private func createWorkspace() {

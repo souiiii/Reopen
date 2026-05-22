@@ -2,6 +2,7 @@ import SwiftUI
 
 struct LaunchResultView: View {
     let result: WorkspaceLaunchResult
+    let onRepair: (ActionLaunchResult) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -27,6 +28,14 @@ struct LaunchResultView: View {
                         Text(actionResult.message)
                             .foregroundStyle(.secondary)
                     }
+
+                    Spacer()
+
+                    if canRepair(actionResult) {
+                        Button("Repair") {
+                            onRepair(actionResult)
+                        }
+                    }
                 }
                 .padding(.vertical, 4)
             }
@@ -44,5 +53,9 @@ struct LaunchResultView: View {
         case .skipped:
             return "Skipped"
         }
+    }
+
+    private func canRepair(_ actionResult: ActionLaunchResult) -> Bool {
+        actionResult.errorCode == "missing_file" || actionResult.errorCode == "missing_folder"
     }
 }

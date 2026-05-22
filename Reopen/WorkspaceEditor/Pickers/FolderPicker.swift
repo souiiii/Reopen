@@ -22,6 +22,10 @@ enum FolderPicker {
             return nil
         }
 
-        return WorkspaceActionDraft.folder(name: url.lastPathComponent, path: url.path)
+        return WorkspaceActionDraft.folder(
+            name: url.lastPathComponent,
+            path: url.path,
+            securityScopedBookmarkData: SecurityScopedBookmark.makeBookmarkData(for: url)
+        )
     }
 }

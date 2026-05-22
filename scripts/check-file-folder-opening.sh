@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT="$ROOT_DIR/.build/app-launching-checks"
+OUTPUT="$ROOT_DIR/.build/file-folder-opening-checks"
 
 mkdir -p "$ROOT_DIR/.build"
 
@@ -17,7 +17,7 @@ swiftc \
   "$ROOT_DIR/Reopen/Runner/URLNormalizer.swift" \
   "$ROOT_DIR/Reopen/Runner/URLOpener.swift" \
   "$ROOT_DIR/Reopen/Runner/WorkspaceAppRunner.swift" \
-  "$ROOT_DIR/scripts/check-app-launching.swift" \
+  "$ROOT_DIR/scripts/check-file-folder-opening.swift" \
   -o "$OUTPUT"
 
 "$OUTPUT"

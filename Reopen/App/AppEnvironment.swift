@@ -37,6 +37,8 @@ final class AppEnvironment {
         )
         let workspaceAppRunner = WorkspaceAppRunner(
             appLauncher: AppLauncher(),
+            fileFolderOpener: FileFolderOpener(),
+            urlOpener: URLOpener(),
             errorLogger: ErrorLogger()
         )
 

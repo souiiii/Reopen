@@ -17,6 +17,7 @@ swiftc \
   "$ROOT_DIR/Reopen/Storage/WorkspaceStore.swift" \
   "$ROOT_DIR/Reopen/Workspaces/WorkspaceValidator.swift" \
   "$ROOT_DIR/Reopen/Workspaces/WorkspaceManager.swift" \
+  "$ROOT_DIR/Reopen/Runner/URLNormalizer.swift" \
   "$ROOT_DIR/Reopen/WorkspaceEditor/WorkspaceCreationDraft.swift" \
   "$ROOT_DIR/scripts/check-workspace-creation.swift" \
   -o "$OUTPUT"

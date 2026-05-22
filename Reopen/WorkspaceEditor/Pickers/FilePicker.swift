@@ -13,6 +13,10 @@ enum FilePicker {
             return nil
         }
 
-        return WorkspaceActionDraft.file(name: url.lastPathComponent, path: url.path)
+        return WorkspaceActionDraft.file(
+            name: url.lastPathComponent,
+            path: url.path,
+            securityScopedBookmarkData: SecurityScopedBookmark.makeBookmarkData(for: url)
+        )
     }
 }
