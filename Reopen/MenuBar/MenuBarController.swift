@@ -12,11 +12,15 @@ final class MenuBarController: NSObject {
     }
 
     func install() {
+        environment.appState.onWorkspaceListChanged = { [weak self] in
+            self?.rebuildMenu()
+        }
         configureStatusButton()
         rebuildMenu()
     }
 
     func uninstall() {
+        environment.appState.onWorkspaceListChanged = nil
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
@@ -105,7 +109,7 @@ final class MenuBarController: NSObject {
     }
 
     @objc private func createWorkspace() {
-        environment.windowPresenter.show(.createWorkspace)
+        environment.windowPresenter.showWorkspaceCreation(workspaceManager: environment.workspaceManager)
     }
 
     @objc private func manageWorkspaces() {

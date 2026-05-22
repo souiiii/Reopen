@@ -4,6 +4,7 @@ import Foundation
 final class AppState: ObservableObject {
     @Published private(set) var workspaces: [Workspace] = []
     @Published var storageErrorMessage: String?
+    var onWorkspaceListChanged: (() -> Void)?
 
     var workspaceNames: [String] {
         workspaces.map(\.name)
@@ -11,5 +12,6 @@ final class AppState: ObservableObject {
 
     func replaceWorkspaces(_ workspaces: [Workspace]) {
         self.workspaces = workspaces
+        onWorkspaceListChanged?()
     }
 }

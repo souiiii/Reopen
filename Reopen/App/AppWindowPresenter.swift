@@ -4,6 +4,23 @@ import SwiftUI
 @MainActor
 final class AppWindowPresenter {
     private var windowControllers: [AppRoute: NSWindowController] = [:]
+    private var workspaceCreationController: WorkspaceEditorWindowController?
+
+    func showWorkspaceCreation(workspaceManager: WorkspaceManager) {
+        if let existingController = workspaceCreationController {
+            existingController.showWindow(nil)
+            return
+        }
+
+        let controller = WorkspaceEditorWindowController(
+            workspaceManager: workspaceManager,
+            onClose: { [weak self] in
+                self?.workspaceCreationController = nil
+            }
+        )
+        workspaceCreationController = controller
+        controller.showWindow(nil)
+    }
 
     func show(_ route: AppRoute) {
         if let existingController = windowControllers[route] {
