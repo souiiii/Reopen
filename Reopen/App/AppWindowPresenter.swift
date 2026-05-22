@@ -5,6 +5,8 @@ import SwiftUI
 final class AppWindowPresenter {
     private var windowControllers: [AppRoute: NSWindowController] = [:]
     private var workspaceCreationController: WorkspaceEditorWindowController?
+    private var workspaceEditingControllers: [UUID: WorkspaceEditorWindowController] = [:]
+    private var workspaceManagementController: ManageWorkspacesWindowController?
 
     func showWorkspaceCreation(workspaceManager: WorkspaceManager) {
         if let existingController = workspaceCreationController {
@@ -13,12 +15,50 @@ final class AppWindowPresenter {
         }
 
         let controller = WorkspaceEditorWindowController(
+            mode: .create,
             workspaceManager: workspaceManager,
             onClose: { [weak self] in
                 self?.workspaceCreationController = nil
             }
         )
         workspaceCreationController = controller
+        controller.showWindow(nil)
+    }
+
+    func showWorkspaceEditing(workspace: Workspace, workspaceManager: WorkspaceManager) {
+        if let existingController = workspaceEditingControllers[workspace.id] {
+            existingController.showWindow(nil)
+            return
+        }
+
+        let controller = WorkspaceEditorWindowController(
+            mode: .edit(workspace),
+            workspaceManager: workspaceManager,
+            onClose: { [weak self] in
+                self?.workspaceEditingControllers[workspace.id] = nil
+            }
+        )
+        workspaceEditingControllers[workspace.id] = controller
+        controller.showWindow(nil)
+    }
+
+    func showWorkspaceManagement(appState: AppState, workspaceManager: WorkspaceManager) {
+        if let existingController = workspaceManagementController {
+            existingController.showWindow(nil)
+            return
+        }
+
+        let controller = ManageWorkspacesWindowController(
+            appState: appState,
+            workspaceManager: workspaceManager,
+            onEdit: { [weak self] workspace in
+                self?.showWorkspaceEditing(workspace: workspace, workspaceManager: workspaceManager)
+            },
+            onClose: { [weak self] in
+                self?.workspaceManagementController = nil
+            }
+        )
+        workspaceManagementController = controller
         controller.showWindow(nil)
     }
 

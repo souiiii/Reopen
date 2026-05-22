@@ -6,13 +6,26 @@ final class WorkspaceEditorWindowController: NSWindowController, NSWindowDelegat
     private let onClose: () -> Void
     private var didClose = false
 
-    init(workspaceManager: WorkspaceManager, onClose: @escaping () -> Void) {
+    init(
+        mode: WorkspaceEditorMode,
+        workspaceManager: WorkspaceManager,
+        onClose: @escaping () -> Void
+    ) {
         self.onClose = onClose
 
         let closeBox = WorkspaceEditorCloseBox()
         let view = WorkspaceEditorView(
+            title: mode.title,
+            saveButtonTitle: mode.saveButtonTitle,
+            draft: mode.draft,
             onSave: { draft in
-                _ = try workspaceManager.createWorkspace(try draft.makeWorkspace())
+                let workspace = try draft.makeWorkspace()
+                switch mode {
+                case .create:
+                    _ = try workspaceManager.createWorkspace(workspace)
+                case .edit:
+                    _ = try workspaceManager.updateWorkspace(workspace)
+                }
             },
             onCancel: {
                 closeBox.close()
@@ -20,7 +33,7 @@ final class WorkspaceEditorWindowController: NSWindowController, NSWindowDelegat
         )
 
         let window = NSWindow(contentViewController: NSHostingController(rootView: view))
-        window.title = "Create Workspace"
+        window.title = mode.title
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.isReleasedWhenClosed = false
         window.setContentSize(NSSize(width: 720, height: 620))
@@ -51,6 +64,38 @@ final class WorkspaceEditorWindowController: NSWindowController, NSWindowDelegat
 
         didClose = true
         onClose()
+    }
+}
+
+enum WorkspaceEditorMode {
+    case create
+    case edit(Workspace)
+
+    var title: String {
+        switch self {
+        case .create:
+            return "Create Workspace"
+        case .edit(let workspace):
+            return "Edit \(workspace.name)"
+        }
+    }
+
+    var saveButtonTitle: String {
+        switch self {
+        case .create:
+            return "Save Workspace"
+        case .edit:
+            return "Save Changes"
+        }
+    }
+
+    var draft: WorkspaceCreationDraft {
+        switch self {
+        case .create:
+            return WorkspaceCreationDraft()
+        case .edit(let workspace):
+            return WorkspaceCreationDraft(workspace: workspace)
+        }
     }
 }
 

@@ -1,11 +1,27 @@
 import SwiftUI
 
 struct WorkspaceEditorView: View {
-    @State private var draft = WorkspaceCreationDraft()
+    @State private var draft: WorkspaceCreationDraft
     @State private var errorMessage: String?
 
+    let title: String
+    let saveButtonTitle: String
     let onSave: (WorkspaceCreationDraft) throws -> Void
     let onCancel: () -> Void
+
+    init(
+        title: String,
+        saveButtonTitle: String,
+        draft: WorkspaceCreationDraft = WorkspaceCreationDraft(),
+        onSave: @escaping (WorkspaceCreationDraft) throws -> Void,
+        onCancel: @escaping () -> Void
+    ) {
+        self.title = title
+        self.saveButtonTitle = saveButtonTitle
+        self._draft = State(initialValue: draft)
+        self.onSave = onSave
+        self.onCancel = onCancel
+    }
 
     private var validationMessage: String? {
         draft.validationMessage
@@ -15,6 +31,10 @@ struct WorkspaceEditorView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
+                    Text(title)
+                        .font(.title2)
+                        .fontWeight(.semibold)
+
                     workspaceDetailsSection
                     actionsSection
                 }
@@ -142,7 +162,7 @@ struct WorkspaceEditorView: View {
             Button("Cancel", action: onCancel)
                 .keyboardShortcut(.cancelAction)
 
-            Button("Save Workspace") {
+            Button(saveButtonTitle) {
                 save()
             }
             .keyboardShortcut(.defaultAction)

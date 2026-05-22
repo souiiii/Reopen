@@ -15,11 +15,47 @@ enum WorkspaceCreationError: Error, Equatable {
 }
 
 struct WorkspaceCreationDraft: Equatable {
+    var id: UUID?
     var name = ""
     var icon: String?
     var color: String?
     var description = ""
     var actions: [WorkspaceActionDraft] = []
+    var windowLayouts: [WindowLayout] = []
+    var createdAt: Date?
+
+    init(
+        id: UUID? = nil,
+        name: String = "",
+        icon: String? = nil,
+        color: String? = nil,
+        description: String = "",
+        actions: [WorkspaceActionDraft] = [],
+        windowLayouts: [WindowLayout] = [],
+        createdAt: Date? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.icon = icon
+        self.color = color
+        self.description = description
+        self.actions = actions
+        self.windowLayouts = windowLayouts
+        self.createdAt = createdAt
+    }
+
+    init(workspace: Workspace) {
+        self.init(
+            id: workspace.id,
+            name: workspace.name,
+            icon: workspace.icon,
+            color: workspace.color,
+            description: workspace.description ?? "",
+            actions: workspace.actions.map(WorkspaceActionDraft.init(action:)),
+            windowLayouts: workspace.windowLayouts,
+            createdAt: workspace.createdAt
+        )
+    }
 
     var validationMessage: String? {
         do {
@@ -39,11 +75,15 @@ struct WorkspaceCreationDraft: Equatable {
         }
 
         return Workspace(
+            id: id ?? UUID(),
             name: trimmedName,
             icon: icon,
             color: color,
             description: optionalTrimmed(description),
-            actions: try actions.map { try $0.makeWorkspaceAction() }
+            actions: try actions.map { try $0.makeWorkspaceAction() },
+            windowLayouts: windowLayouts,
+            createdAt: createdAt ?? Date(),
+            updatedAt: Date()
         )
     }
 
@@ -60,6 +100,7 @@ enum WorkspaceActionDraftKind: String, CaseIterable, Equatable {
     case openURL
     case terminalCommand
     case openVSCodeProject
+    case shellScript
 
     var title: String {
         switch self {
@@ -75,6 +116,8 @@ enum WorkspaceActionDraftKind: String, CaseIterable, Equatable {
             return "Terminal Command"
         case .openVSCodeProject:
             return "VS Code Project"
+        case .shellScript:
+            return "Shell Script"
         }
     }
 
@@ -92,6 +135,8 @@ enum WorkspaceActionDraftKind: String, CaseIterable, Equatable {
             return "terminal"
         case .openVSCodeProject:
             return "chevron.left.forwardslash.chevron.right"
+        case .shellScript:
+            return "applescript"
         }
     }
 }
@@ -106,6 +151,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
     var displayTitle = ""
     var command = ""
     var workingDirectory = ""
+    var scriptPath = ""
 
     var title: String {
         switch kind {
@@ -120,6 +166,78 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
             return name.isEmpty ? kind.title : name
         case .openVSCodeProject:
             return path.isEmpty ? kind.title : URL(fileURLWithPath: path).lastPathComponent
+        case .shellScript:
+            return name.isEmpty ? kind.title : name
+        }
+    }
+
+    init(
+        id: UUID = UUID(),
+        kind: WorkspaceActionDraftKind,
+        name: String = "",
+        path: String = "",
+        bundleIdentifier: String? = nil,
+        url: String = "",
+        displayTitle: String = "",
+        command: String = "",
+        workingDirectory: String = "",
+        scriptPath: String = ""
+    ) {
+        self.id = id
+        self.kind = kind
+        self.name = name
+        self.path = path
+        self.bundleIdentifier = bundleIdentifier
+        self.url = url
+        self.displayTitle = displayTitle
+        self.command = command
+        self.workingDirectory = workingDirectory
+        self.scriptPath = scriptPath
+    }
+
+    init(action: WorkspaceAction) {
+        switch action {
+        case .openApp(let payload):
+            self.init(
+                id: payload.id,
+                kind: .openApp,
+                name: payload.name,
+                path: payload.path,
+                bundleIdentifier: payload.bundleIdentifier
+            )
+        case .openFile(let payload):
+            self.init(id: payload.id, kind: .openFile, name: payload.name, path: payload.path)
+        case .openFolder(let payload):
+            self.init(id: payload.id, kind: .openFolder, name: payload.name, path: payload.path)
+        case .openURL(let payload):
+            self.init(
+                id: payload.id,
+                kind: .openURL,
+                url: payload.url,
+                displayTitle: payload.displayTitle ?? ""
+            )
+        case .terminalCommand(let payload):
+            self.init(
+                id: payload.id,
+                kind: .terminalCommand,
+                name: payload.name,
+                command: payload.command,
+                workingDirectory: payload.workingDirectory
+            )
+        case .openVSCodeProject(let payload):
+            self.init(
+                id: payload.id,
+                kind: .openVSCodeProject,
+                path: payload.projectPath
+            )
+        case .shellScript(let payload):
+            self.init(
+                id: payload.id,
+                kind: .shellScript,
+                name: payload.name,
+                workingDirectory: payload.workingDirectory ?? "",
+                scriptPath: payload.scriptPath
+            )
         }
     }
 
@@ -195,6 +313,13 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
             return .openVSCodeProject(OpenVSCodeProjectAction(
                 id: id,
                 projectPath: try require(path, field: "project folder")
+            ))
+        case .shellScript:
+            return .shellScript(ShellScriptAction(
+                id: id,
+                name: try require(name, field: "script name"),
+                scriptPath: try require(scriptPath, field: "script path"),
+                workingDirectory: optionalTrimmed(workingDirectory)
             ))
         }
     }

@@ -2,6 +2,10 @@ import SwiftUI
 
 struct ActionEditorView: View {
     @Binding var action: WorkspaceActionDraft
+    let canMoveUp: Bool
+    let canMoveDown: Bool
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
     let onDelete: () -> Void
 
     var body: some View {
@@ -12,6 +16,20 @@ struct ActionEditorView: View {
                     .fontWeight(.semibold)
 
                 Spacer()
+
+                Button(action: onMoveUp) {
+                    Image(systemName: "arrow.up")
+                }
+                .buttonStyle(.borderless)
+                .disabled(!canMoveUp)
+                .help("Move action up")
+
+                Button(action: onMoveDown) {
+                    Image(systemName: "arrow.down")
+                }
+                .buttonStyle(.borderless)
+                .disabled(!canMoveDown)
+                .help("Move action down")
 
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "trash")
@@ -38,6 +56,8 @@ struct ActionEditorView: View {
             terminalFields
         case .openVSCodeProject:
             projectFields
+        case .shellScript:
+            shellScriptFields
         }
     }
 
@@ -86,6 +106,17 @@ struct ActionEditorView: View {
                     action.path = folder.path
                 }
             }
+        }
+    }
+
+    private var shellScriptFields: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField("Name", text: $action.name)
+                .textFieldStyle(.roundedBorder)
+            TextField("Script path", text: $action.scriptPath)
+                .textFieldStyle(.roundedBorder)
+            TextField("Working directory", text: $action.workingDirectory)
+                .textFieldStyle(.roundedBorder)
         }
     }
 }
