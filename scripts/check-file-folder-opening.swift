@@ -116,6 +116,7 @@ enum FileFolderOpeningChecks {
                 return true
             }),
             urlOpener: URLOpener(openURL: { _ in true }),
+            vsCodeLauncher: VSCodeLauncher(runProcess: { _, _ in .success }),
             terminalManager: TerminalManager(
                 executor: AppleScriptTerminalExecutor(executeAppleScript: { _ in .success }),
                 confirmationProvider: { _, _ in true }

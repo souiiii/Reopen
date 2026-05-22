@@ -15,7 +15,7 @@ struct LaunchResultView: View {
                     .foregroundStyle(.secondary)
             }
 
-            List(result.actionResults) { actionResult in
+            List(result.allResults) { actionResult in
                 HStack(alignment: .top, spacing: 12) {
                     Text(statusLabel(for: actionResult.status))
                         .font(.caption)

@@ -6,20 +6,20 @@ final class AppEnvironment {
     let windowPresenter: AppWindowPresenter
     let workspaceStore: WorkspaceStore
     let workspaceManager: WorkspaceManager
-    let workspaceAppRunner: WorkspaceAppRunner
+    let workspaceRunner: WorkspaceRunner
 
     private init(
         appState: AppState,
         windowPresenter: AppWindowPresenter,
         workspaceStore: WorkspaceStore,
         workspaceManager: WorkspaceManager,
-        workspaceAppRunner: WorkspaceAppRunner
+        workspaceRunner: WorkspaceRunner
     ) {
         self.appState = appState
         self.windowPresenter = windowPresenter
         self.workspaceStore = workspaceStore
         self.workspaceManager = workspaceManager
-        self.workspaceAppRunner = workspaceAppRunner
+        self.workspaceRunner = workspaceRunner
     }
 
     static func bootstrap() -> AppEnvironment {
@@ -35,11 +35,13 @@ final class AppEnvironment {
             workspaceStore: workspaceStore,
             initialWorkspaces: loadResult.workspaces
         )
-        let workspaceAppRunner = WorkspaceAppRunner(
+        let workspaceRunner = WorkspaceRunner(
             appLauncher: AppLauncher(),
             fileFolderOpener: FileFolderOpener(),
             urlOpener: URLOpener(),
+            vsCodeLauncher: VSCodeLauncher(),
             terminalManager: TerminalManager(),
+            windowLayoutRestorer: WindowLayoutRestorer(),
             errorLogger: ErrorLogger()
         )
 
@@ -55,7 +57,7 @@ final class AppEnvironment {
             windowPresenter: AppWindowPresenter(),
             workspaceStore: workspaceStore,
             workspaceManager: workspaceManager,
-            workspaceAppRunner: workspaceAppRunner
+            workspaceRunner: workspaceRunner
         )
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-struct WindowLayout: Identifiable, Codable, Equatable {
+struct WindowLayout: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var appBundleIdentifier: String
     var windowTitle: String?

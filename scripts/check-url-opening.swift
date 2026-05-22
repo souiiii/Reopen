@@ -94,6 +94,7 @@ enum URLOpeningChecks {
                 openedURLs.append(url)
                 return true
             }),
+            vsCodeLauncher: VSCodeLauncher(runProcess: { _, _ in .success }),
             terminalManager: TerminalManager(
                 executor: AppleScriptTerminalExecutor(executeAppleScript: { _ in .success }),
                 confirmationProvider: { _, _ in true }
@@ -130,6 +131,7 @@ enum URLOpeningChecks {
                 openedURLs.append(url)
                 return true
             }),
+            vsCodeLauncher: VSCodeLauncher(runProcess: { _, _ in .success }),
             terminalManager: TerminalManager(
                 executor: AppleScriptTerminalExecutor(executeAppleScript: { _ in .success }),
                 confirmationProvider: { _, _ in true }

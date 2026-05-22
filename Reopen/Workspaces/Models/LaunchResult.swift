@@ -1,12 +1,27 @@
 import Foundation
 
-enum ActionLaunchStatus: String, Codable, Equatable {
+enum ActionLaunchStatus: String, Codable, Equatable, Sendable {
     case succeeded
     case failed
     case skipped
 }
 
-struct ActionLaunchResult: Identifiable, Codable, Equatable {
+enum WorkspaceLaunchProgressStage: String, Codable, Equatable, Sendable {
+    case preparing
+    case validating
+    case checkingPermissions
+    case openingApps
+    case openingFiles
+    case openingFolders
+    case openingURLs
+    case openingCodeProjects
+    case runningTerminalCommands
+    case waitingForWindows
+    case applyingWindowLayout
+    case finished
+}
+
+struct ActionLaunchResult: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var actionID: UUID?
     var actionType: String
@@ -34,13 +49,14 @@ struct ActionLaunchResult: Identifiable, Codable, Equatable {
     }
 }
 
-struct WorkspaceLaunchResult: Identifiable, Codable, Equatable {
+struct WorkspaceLaunchResult: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var workspaceID: UUID
     var workspaceName: String
     var startedAt: Date
     var finishedAt: Date?
     var actionResults: [ActionLaunchResult]
+    var layoutResults: [ActionLaunchResult]
 
     init(
         id: UUID = UUID(),
@@ -48,7 +64,8 @@ struct WorkspaceLaunchResult: Identifiable, Codable, Equatable {
         workspaceName: String,
         startedAt: Date = Date(),
         finishedAt: Date? = nil,
-        actionResults: [ActionLaunchResult] = []
+        actionResults: [ActionLaunchResult] = [],
+        layoutResults: [ActionLaunchResult] = []
     ) {
         self.id = id
         self.workspaceID = workspaceID
@@ -56,9 +73,60 @@ struct WorkspaceLaunchResult: Identifiable, Codable, Equatable {
         self.startedAt = startedAt
         self.finishedAt = finishedAt
         self.actionResults = actionResults
+        self.layoutResults = layoutResults
+    }
+
+    var allResults: [ActionLaunchResult] {
+        actionResults + layoutResults
     }
 
     var hasFailures: Bool {
-        actionResults.contains { $0.status == .failed }
+        allResults.contains { $0.status == .failed }
+    }
+}
+
+struct WorkspaceLaunchProgressSnapshot: Identifiable, Equatable, Sendable {
+    let id: UUID
+    var workspaceID: UUID
+    var workspaceName: String
+    var stage: WorkspaceLaunchProgressStage
+    var message: String
+    var completedUnits: Int
+    var totalUnits: Int
+    var actionResults: [ActionLaunchResult]
+    var layoutResults: [ActionLaunchResult]
+
+    init(
+        id: UUID = UUID(),
+        workspaceID: UUID,
+        workspaceName: String,
+        stage: WorkspaceLaunchProgressStage,
+        message: String,
+        completedUnits: Int = 0,
+        totalUnits: Int = 1,
+        actionResults: [ActionLaunchResult] = [],
+        layoutResults: [ActionLaunchResult] = []
+    ) {
+        self.id = id
+        self.workspaceID = workspaceID
+        self.workspaceName = workspaceName
+        self.stage = stage
+        self.message = message
+        self.completedUnits = completedUnits
+        self.totalUnits = max(totalUnits, 1)
+        self.actionResults = actionResults
+        self.layoutResults = layoutResults
+    }
+
+    var progressFraction: Double {
+        guard totalUnits > 0 else {
+            return 0
+        }
+
+        return min(Double(completedUnits) / Double(totalUnits), 1)
+    }
+
+    var allResults: [ActionLaunchResult] {
+        actionResults + layoutResults
     }
 }

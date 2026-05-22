@@ -1,6 +1,6 @@
 import Foundation
 
-struct Workspace: Identifiable, Codable, Equatable {
+struct Workspace: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
     var icon: String?

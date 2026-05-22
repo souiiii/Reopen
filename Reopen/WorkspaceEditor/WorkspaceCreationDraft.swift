@@ -153,6 +153,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
     var command = ""
     var workingDirectory = ""
     var requiresConfirmation = true
+    var editor = "vscode"
     var scriptPath = ""
 
     var title: String {
@@ -185,6 +186,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         command: String = "",
         workingDirectory: String = "",
         requiresConfirmation: Bool = true,
+        editor: String = "vscode",
         scriptPath: String = ""
     ) {
         self.id = id
@@ -198,6 +200,7 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         self.command = command
         self.workingDirectory = workingDirectory
         self.requiresConfirmation = requiresConfirmation
+        self.editor = editor
         self.scriptPath = scriptPath
     }
 
@@ -247,7 +250,8 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
             self.init(
                 id: payload.id,
                 kind: .openVSCodeProject,
-                path: payload.projectPath
+                path: payload.projectPath,
+                editor: payload.editor
             )
         case .shellScript(let payload):
             self.init(
@@ -295,8 +299,8 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         WorkspaceActionDraft(kind: .terminalCommand, name: "Command")
     }
 
-    static func vsCodeProject(path: String) -> WorkspaceActionDraft {
-        WorkspaceActionDraft(kind: .openVSCodeProject, path: path)
+    static func vsCodeProject(path: String, editor: String = "vscode") -> WorkspaceActionDraft {
+        WorkspaceActionDraft(kind: .openVSCodeProject, path: path, editor: editor)
     }
 
     func makeWorkspaceAction() throws -> WorkspaceAction {
@@ -344,7 +348,8 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         case .openVSCodeProject:
             return .openVSCodeProject(OpenVSCodeProjectAction(
                 id: id,
-                projectPath: try require(path, field: "project folder")
+                projectPath: try require(path, field: "project folder"),
+                editor: try require(editor, field: "editor")
             ))
         case .shellScript:
             return .shellScript(ShellScriptAction(

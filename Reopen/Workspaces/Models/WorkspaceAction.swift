@@ -1,6 +1,6 @@
 import Foundation
 
-enum WorkspaceActionType: String, Codable, CaseIterable, Equatable {
+enum WorkspaceActionType: String, Codable, CaseIterable, Equatable, Sendable {
     case openApp
     case openFile
     case openFolder
@@ -10,7 +10,7 @@ enum WorkspaceActionType: String, Codable, CaseIterable, Equatable {
     case shellScript
 }
 
-enum WorkspaceAction: Identifiable, Codable, Equatable {
+enum WorkspaceAction: Identifiable, Codable, Equatable, Sendable {
     case openApp(OpenAppAction)
     case openFile(OpenFileAction)
     case openFolder(OpenFolderAction)
@@ -114,7 +114,7 @@ enum WorkspaceAction: Identifiable, Codable, Equatable {
     }
 }
 
-struct OpenAppAction: Identifiable, Codable, Equatable {
+struct OpenAppAction: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
     var path: String
@@ -133,7 +133,7 @@ struct OpenAppAction: Identifiable, Codable, Equatable {
     }
 }
 
-struct OpenFileAction: Identifiable, Codable, Equatable {
+struct OpenFileAction: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
     var path: String
@@ -152,7 +152,7 @@ struct OpenFileAction: Identifiable, Codable, Equatable {
     }
 }
 
-struct OpenFolderAction: Identifiable, Codable, Equatable {
+struct OpenFolderAction: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
     var path: String
@@ -171,7 +171,7 @@ struct OpenFolderAction: Identifiable, Codable, Equatable {
     }
 }
 
-struct OpenURLAction: Identifiable, Codable, Equatable {
+struct OpenURLAction: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var url: String
     var displayTitle: String?
@@ -187,7 +187,7 @@ struct OpenURLAction: Identifiable, Codable, Equatable {
     }
 }
 
-struct TerminalCommandAction: Identifiable, Codable, Equatable {
+struct TerminalCommandAction: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
     var command: String
@@ -226,7 +226,7 @@ struct TerminalCommandAction: Identifiable, Codable, Equatable {
     }
 }
 
-struct OpenVSCodeProjectAction: Identifiable, Codable, Equatable {
+struct OpenVSCodeProjectAction: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var projectPath: String
     var editor: String
@@ -255,7 +255,7 @@ struct OpenVSCodeProjectAction: Identifiable, Codable, Equatable {
     }
 }
 
-struct ShellScriptAction: Identifiable, Codable, Equatable {
+struct ShellScriptAction: Identifiable, Codable, Equatable, Sendable {
     let id: UUID
     var name: String
     var scriptPath: String

@@ -108,10 +108,34 @@ final class MenuBarController: NSObject {
             return
         }
 
-        let result = environment.workspaceAppRunner.launchWorkspaceActions(in: workspace)
-        environment.windowPresenter.showLaunchResult(
-            result,
-            workspaceManager: environment.workspaceManager
+        let initialProgress = WorkspaceLaunchProgressSnapshot(
+            workspaceID: workspace.id,
+            workspaceName: workspace.name,
+            stage: .preparing,
+            message: "Preparing launch..."
+        )
+        environment.windowPresenter.showLaunchProgress(initialProgress)
+
+        environment.workspaceRunner.launchWorkspaceActionsAsync(
+            in: workspace,
+            progressHandler: { [weak self] snapshot in
+                Task { @MainActor in
+                    self?.environment.windowPresenter.updateLaunchProgress(snapshot)
+                }
+            },
+            completion: { [weak self] result in
+                Task { @MainActor in
+                    guard let self else {
+                        return
+                    }
+
+                    self.environment.windowPresenter.closeLaunchProgress(workspaceID: workspace.id)
+                    self.environment.windowPresenter.showLaunchResult(
+                        result,
+                        workspaceManager: self.environment.workspaceManager
+                    )
+                }
+            }
         )
     }
 

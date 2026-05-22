@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT="$ROOT_DIR/.build/url-opening-checks"
+OUTPUT="$ROOT_DIR/.build/vscode-project-checks"
 
 mkdir -p "$ROOT_DIR/.build"
 
@@ -25,7 +25,7 @@ swiftc \
   "$ROOT_DIR/Reopen/Runner/WindowLayoutRestorer.swift" \
   "$ROOT_DIR/Reopen/Runner/WorkspaceRunner.swift" \
   "$ROOT_DIR/Reopen/WorkspaceEditor/WorkspaceCreationDraft.swift" \
-  "$ROOT_DIR/scripts/check-url-opening.swift" \
+  "$ROOT_DIR/scripts/check-vscode-project.swift" \
   -o "$OUTPUT"
 
 "$OUTPUT"

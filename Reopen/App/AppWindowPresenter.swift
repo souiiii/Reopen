@@ -7,6 +7,7 @@ final class AppWindowPresenter {
     private var workspaceCreationController: WorkspaceEditorWindowController?
     private var workspaceEditingControllers: [UUID: WorkspaceEditorWindowController] = [:]
     private var workspaceManagementController: ManageWorkspacesWindowController?
+    private var launchProgressControllers: [UUID: LaunchProgressWindowController] = [:]
     private var launchResultControllers: [UUID: LaunchResultWindowController] = [:]
 
     func showWorkspaceCreation(workspaceManager: WorkspaceManager) {
@@ -79,6 +80,37 @@ final class AppWindowPresenter {
         )
         launchResultControllers[result.id] = controller
         controller.showWindow(nil)
+    }
+
+    func showLaunchProgress(_ snapshot: WorkspaceLaunchProgressSnapshot) {
+        if let existingController = launchProgressControllers[snapshot.workspaceID] {
+            existingController.update(snapshot: snapshot)
+            existingController.showWindow(nil)
+            return
+        }
+
+        let controller = LaunchProgressWindowController(
+            snapshot: snapshot,
+            onClose: { [weak self] in
+                self?.launchProgressControllers[snapshot.workspaceID] = nil
+            }
+        )
+        launchProgressControllers[snapshot.workspaceID] = controller
+        controller.showWindow(nil)
+    }
+
+    func updateLaunchProgress(_ snapshot: WorkspaceLaunchProgressSnapshot) {
+        if let existingController = launchProgressControllers[snapshot.workspaceID] {
+            existingController.update(snapshot: snapshot)
+        } else {
+            showLaunchProgress(snapshot)
+        }
+    }
+
+    func closeLaunchProgress(workspaceID: UUID) {
+        let controller = launchProgressControllers[workspaceID]
+        launchProgressControllers[workspaceID] = nil
+        controller?.close()
     }
 
     func show(_ route: AppRoute) {

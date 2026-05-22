@@ -187,6 +187,7 @@ enum TerminalCommandChecks {
             appLauncher: AppLauncher(openApplication: { _ in true }),
             fileFolderOpener: FileFolderOpener(openResource: { _ in true }),
             urlOpener: URLOpener(openURL: { _ in true }),
+            vsCodeLauncher: VSCodeLauncher(runProcess: { _, _ in .success }),
             terminalManager: TerminalManager(
                 executor: AppleScriptTerminalExecutor(executeAppleScript: { script in
                     executedScripts.append(script)
