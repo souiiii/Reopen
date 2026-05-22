@@ -1,0 +1,1106 @@
+# Implementation Plan: Reopen — macOS Workspace Rehydrator V1
+
+Assumed tech stack:
+
+* **Language:** Swift
+* **UI:** SwiftUI + AppKit where needed
+* **App type:** macOS menu bar app
+* **Storage:** Local JSON files
+* **Permissions:** Accessibility, Automation, File access
+* **Distribution:** Direct download `.dmg`, not Mac App Store for V1
+
+The goal of V1 is:
+
+> A professional macOS menu bar app that lets users create workspaces and launch apps, files, folders, URLs, terminal commands, VS Code projects, and basic window layouts in one click.
+
+A completely bug-free app can never be guaranteed, but this plan is structured to reach a stable, polished, production-quality V1.
+
+---
+
+# Phase 1: Finalize V1 Scope
+
+## Goal
+
+Lock the first version scope so development does not expand endlessly.
+
+## Build in V1
+
+* Menu bar app
+* Workspace creation
+* Workspace editing
+* Workspace deletion
+* App launching
+* File opening
+* Folder opening
+* URL opening
+* Terminal command execution
+* VS Code project opening
+* Basic window positioning
+* Import/export JSON
+* Local storage
+* Settings
+* Permission onboarding
+* Error handling
+* Basic licensing/payment support
+
+## Do Not Build in V1
+
+* Cloud sync
+* Team sharing
+* Browser extension
+* Perfect tab restoration
+* AI workspace generation
+* Full session snapshotting
+* Complex automation builder
+* Advanced tiling window manager
+* Multi-device support
+* Windows/Linux support
+
+## Deliverable
+
+A frozen V1 feature list.
+
+## Acceptance Criteria
+
+The developer can clearly say what belongs in V1 and what does not.
+
+---
+
+# Phase 2: Define Product Architecture
+
+## Goal
+
+Design the app structure before writing major code.
+
+## Core Modules
+
+```text
+App Shell
+Menu Bar Controller
+Workspace Manager
+Workspace Editor
+Action Runner
+Permission Manager
+Window Manager
+Terminal Manager
+Storage Manager
+Settings Manager
+Error Logger
+License Manager
+```
+
+## Main Concept
+
+A workspace is a list of actions.
+
+Example:
+
+```json
+{
+  "name": "Coding",
+  "actions": [
+    { "type": "openApp", "path": "/Applications/Visual Studio Code.app" },
+    { "type": "openFolder", "path": "/Users/me/Projects/App" },
+    { "type": "openURL", "url": "https://github.com" },
+    { "type": "terminalCommand", "command": "npm run dev", "workingDirectory": "/Users/me/Projects/App" }
+  ]
+}
+```
+
+## Deliverable
+
+A technical architecture document.
+
+## Acceptance Criteria
+
+A developer knows where each feature belongs in the codebase.
+
+---
+
+# Phase 3: Create the macOS App Skeleton
+
+## Goal
+
+Create the base macOS application.
+
+## Tasks
+
+* Create a new Swift macOS project.
+* Configure it as a menu bar utility.
+* Add SwiftUI support.
+* Add AppKit integration where needed.
+* Hide the Dock icon by default.
+* Add basic app lifecycle handling.
+* Add app icon placeholder.
+* Add app name, bundle ID, and version metadata.
+
+## Deliverable
+
+A working empty macOS menu bar app.
+
+## Acceptance Criteria
+
+* App launches successfully.
+* App appears in the menu bar.
+* App can quit from the menu.
+* App does not crash on launch.
+* App does not show an unnecessary main window.
+
+---
+
+# Phase 4: Build the Menu Bar Interface
+
+## Goal
+
+Create the main menu bar experience.
+
+## Menu Structure
+
+```text
+Reopen
+
+Workspaces
+- Coding
+- Writing
+- Client A
+
+Create Workspace
+Manage Workspaces
+Settings
+Quit
+```
+
+## Tasks
+
+* Add menu bar icon.
+* Add dropdown menu.
+* Show workspace list.
+* Add empty state when no workspaces exist.
+* Add “Create Workspace.”
+* Add “Manage Workspaces.”
+* Add “Settings.”
+* Add “Quit.”
+
+## Deliverable
+
+Functional menu bar UI.
+
+## Acceptance Criteria
+
+* User can open the menu from the menu bar.
+* Existing workspaces appear in the menu.
+* Empty state is understandable.
+* Menu items trigger the correct screens or actions.
+
+---
+
+# Phase 5: Define the Workspace Data Model
+
+## Goal
+
+Create stable internal models for workspaces and actions.
+
+## Models Needed
+
+### Workspace
+
+```swift
+struct Workspace {
+    let id: UUID
+    var name: String
+    var icon: String?
+    var color: String?
+    var description: String?
+    var actions: [WorkspaceAction]
+    var windowLayouts: [WindowLayout]
+    var createdAt: Date
+    var updatedAt: Date
+}
+```
+
+### Workspace Action Types
+
+```text
+openApp
+openFile
+openFolder
+openURL
+terminalCommand
+openVSCodeProject
+shellScript
+```
+
+### Window Layout
+
+```text
+appBundleIdentifier
+windowTitle
+screenIdentifier
+x
+y
+width
+height
+```
+
+## Deliverable
+
+Complete data model implementation.
+
+## Acceptance Criteria
+
+* Workspace can be encoded to JSON.
+* Workspace can be decoded from JSON.
+* Invalid action types are rejected safely.
+* Future action types can be added without breaking old workspaces.
+
+---
+
+# Phase 6: Build Local Storage
+
+## Goal
+
+Persist workspaces locally.
+
+## Storage Location
+
+Use Application Support:
+
+```text
+~/Library/Application Support/Reopen/workspaces.json
+```
+
+## Tasks
+
+* Create app support directory if missing.
+* Save workspaces as JSON.
+* Load workspaces on app launch.
+* Handle missing storage file.
+* Handle corrupted storage file.
+* Create backup before overwriting.
+* Add lightweight migration support.
+
+## Deliverable
+
+Reliable local workspace storage.
+
+## Acceptance Criteria
+
+* Workspaces persist after app restart.
+* Corrupted JSON does not crash the app.
+* App creates a backup before destructive writes.
+* Storage errors are shown clearly to the user.
+
+---
+
+# Phase 7: Build Workspace Manager
+
+## Goal
+
+Create the internal service that controls workspace CRUD operations.
+
+## Tasks
+
+Implement:
+
+```text
+createWorkspace()
+updateWorkspace()
+deleteWorkspace()
+duplicateWorkspace()
+getWorkspace()
+getAllWorkspaces()
+reorderWorkspaces()
+```
+
+## Rules
+
+* Workspace names cannot be empty.
+* Duplicate names are allowed but discouraged.
+* Every workspace must have a unique ID.
+* Deleting a workspace should ask for confirmation.
+
+## Deliverable
+
+Workspace management logic.
+
+## Acceptance Criteria
+
+* User can create, edit, duplicate, delete, and reorder workspaces.
+* Changes are immediately saved.
+* No duplicate IDs are created.
+* Invalid workspace data is rejected.
+
+---
+
+# Phase 8: Build Workspace Creation UI
+
+## Goal
+
+Let users create a workspace manually.
+
+## Screen Sections
+
+```text
+Workspace Details
+- Name
+- Icon
+- Color
+- Description
+
+Actions
+- Add App
+- Add File
+- Add Folder
+- Add URL
+- Add Terminal Command
+- Add VS Code Project
+
+Save
+Cancel
+```
+
+## Tasks
+
+* Build workspace editor window.
+* Add name field.
+* Add optional icon picker.
+* Add optional color picker.
+* Add description field.
+* Add action list.
+* Add save/cancel buttons.
+* Validate form before saving.
+
+## Deliverable
+
+Workspace creation screen.
+
+## Acceptance Criteria
+
+* User can create a workspace without needing technical knowledge.
+* User cannot save a workspace with no name.
+* User can add at least one action.
+* Workspace appears in menu bar immediately after saving.
+
+---
+
+# Phase 9: Build Workspace Editing UI
+
+## Goal
+
+Allow existing workspaces to be changed.
+
+## Tasks
+
+* Open editor with existing workspace data.
+* Allow action editing.
+* Allow action deletion.
+* Allow action reordering.
+* Allow workspace renaming.
+* Allow icon/color/description updates.
+* Save changes.
+* Cancel without saving.
+
+## Deliverable
+
+Workspace editing screen.
+
+## Acceptance Criteria
+
+* User can edit every workspace field.
+* User can reorder launch actions.
+* Cancel does not modify saved data.
+* Save updates the workspace immediately.
+
+---
+
+# Phase 10: Build App Launching
+
+## Goal
+
+Allow a workspace to open macOS apps.
+
+## Tasks
+
+* Add app picker using system file picker.
+* Restrict picker to `.app` bundles.
+* Store app path and bundle identifier.
+* Open apps using `NSWorkspace`.
+* Detect if app path no longer exists.
+* Show error if launch fails.
+
+## Example Action
+
+```json
+{
+  "type": "openApp",
+  "name": "Slack",
+  "path": "/Applications/Slack.app",
+  "bundleIdentifier": "com.tinyspeck.slackmacgap"
+}
+```
+
+## Deliverable
+
+App launch action.
+
+## Acceptance Criteria
+
+* User can add an app to a workspace.
+* Workspace launch opens the selected app.
+* Missing apps are handled gracefully.
+* App launch failures are logged and shown in launch results.
+
+---
+
+# Phase 11: Build File and Folder Opening
+
+## Goal
+
+Allow a workspace to open files and folders.
+
+## Tasks
+
+* Add file picker.
+* Add folder picker.
+* Store security-scoped bookmarks where necessary.
+* Open files using default apps.
+* Open folders in Finder.
+* Detect missing files/folders.
+* Allow user to repair missing paths.
+
+## Deliverable
+
+File and folder actions.
+
+## Acceptance Criteria
+
+* User can add files.
+* User can add folders.
+* Launching workspace opens them correctly.
+* Missing file/folder errors do not stop the whole workspace launch.
+* User sees which item failed.
+
+---
+
+# Phase 12: Build URL Opening
+
+## Goal
+
+Allow a workspace to open web links.
+
+## Tasks
+
+* Add URL input field.
+* Validate URLs.
+* Auto-add `https://` when appropriate.
+* Open URLs using default browser.
+* Allow multiple URLs.
+* Display URL title or domain in the action list.
+
+## Example Action
+
+```json
+{
+  "type": "openURL",
+  "url": "https://github.com/example/project"
+}
+```
+
+## Deliverable
+
+URL action.
+
+## Acceptance Criteria
+
+* User can add valid URLs.
+* Invalid URLs are rejected.
+* Workspace launch opens URLs in the default browser.
+* Multiple URLs open reliably.
+
+---
+
+# Phase 13: Build Terminal Command Execution
+
+## Goal
+
+Allow workspaces to run terminal commands.
+
+## Tasks
+
+* Let user select working directory.
+* Let user enter command.
+* Let user choose whether to run automatically or ask first.
+* Open Terminal.app.
+* Run command using AppleScript.
+* Escape command strings safely.
+* Show warning for destructive commands.
+
+## Example
+
+```bash
+cd ~/Projects/my-app
+npm run dev
+```
+
+## Security Rules
+
+Commands should not run silently by default unless the user has allowed it.
+
+Recommended V1 behavior:
+
+```text
+Ask before running terminal commands: ON by default
+```
+
+## Deliverable
+
+Terminal command action.
+
+## Acceptance Criteria
+
+* User can add a terminal command.
+* Command runs in Terminal.
+* Working directory is respected.
+* Dangerous-looking commands show a confirmation.
+* Failed commands are reported clearly.
+
+---
+
+# Phase 14: Build VS Code Project Support
+
+## Goal
+
+Make the app highly useful for developers.
+
+## Tasks
+
+* Let user select project folder.
+* Add action type: `openVSCodeProject`.
+* Detect common VS Code app locations.
+* Support opening via command line if `code` CLI is available.
+* Fall back to opening folder with VS Code app.
+* Show helpful error if VS Code is missing.
+
+## Example
+
+```json
+{
+  "type": "openVSCodeProject",
+  "projectPath": "/Users/me/Projects/my-app",
+  "editor": "vscode"
+}
+```
+
+## Deliverable
+
+VS Code project action.
+
+## Acceptance Criteria
+
+* User can add a project folder.
+* Launching workspace opens the folder in VS Code.
+* App handles missing VS Code gracefully.
+* App does not require the user to manually write `code ~/project`.
+
+---
+
+# Phase 15: Build Workspace Launch Engine
+
+## Goal
+
+Create the central system that executes workspace actions.
+
+## Launch Sequence
+
+```text
+1. Validate workspace
+2. Check permissions
+3. Open apps
+4. Open files
+5. Open folders
+6. Open URLs
+7. Open code projects
+8. Run terminal commands
+9. Wait briefly
+10. Apply window layout
+11. Show launch result
+```
+
+## Tasks
+
+* Build `WorkspaceRunner`.
+* Execute actions in predictable order.
+* Support delays between actions.
+* Continue even if one action fails.
+* Collect success/failure results.
+* Show progress to user.
+
+## Deliverable
+
+Complete workspace launch engine.
+
+## Acceptance Criteria
+
+* User can launch a workspace from the menu bar.
+* Actions run in the expected order.
+* One failed action does not stop the whole launch.
+* User sees a clear summary of what succeeded and failed.
+* App remains responsive during launch.
+
+---
+
+# Phase 16: Build Permission Onboarding
+
+## Goal
+
+Make macOS permissions understandable.
+
+## Permissions Needed
+
+### Accessibility
+
+For window movement and resizing.
+
+### Automation
+
+For controlling Terminal and possibly other apps.
+
+### File Access
+
+For opening saved files and folders.
+
+## Tasks
+
+* Detect missing permissions.
+* Explain why each permission is needed.
+* Add buttons to open System Settings.
+* Do not request permissions before needed.
+* Allow app to work partially without all permissions.
+
+## Example Message
+
+```text
+Reopen needs Accessibility permission to restore window positions.
+You can still launch apps and files without this permission.
+```
+
+## Deliverable
+
+Permission onboarding flow.
+
+## Acceptance Criteria
+
+* User understands why permissions are needed.
+* App does not fail silently because of missing permissions.
+* App works without layout features if Accessibility is denied.
+* App guides user to the right macOS settings screen.
+
+---
+
+# Phase 17: Build Basic Window Layout Restore
+
+## Goal
+
+Allow users to save and restore simple window positions.
+
+## V1 Layout Options
+
+```text
+Left Half
+Right Half
+Top Half
+Bottom Half
+Center
+Fullscreen
+Custom Rectangle
+```
+
+## Tasks
+
+* Use Accessibility API to read open windows.
+* Allow user to save current layout.
+* Store app bundle ID and window frame.
+* Restore position after workspace launch.
+* Handle multiple monitors as best-effort.
+* Skip apps that cannot be moved.
+* Report failed layout actions.
+
+## Important Limitation
+
+Do not promise perfect restoration.
+
+Use language like:
+
+```text
+Best-effort window restore
+```
+
+## Deliverable
+
+Basic window layout functionality.
+
+## Acceptance Criteria
+
+* User can save current layout for a workspace.
+* Reopen can move supported app windows.
+* Unsupported apps do not crash the app.
+* User sees layout restore failures clearly.
+* Layout restore can be disabled per workspace.
+
+---
+
+# Phase 18: Build Settings
+
+## Goal
+
+Give users control over app behavior.
+
+## Settings Needed
+
+```text
+Launch Reopen at login
+Show/hide Dock icon
+Ask before running terminal commands
+Default launch delay
+Enable/disable window restore
+Preferred terminal app
+Preferred code editor
+Import workspaces
+Export workspaces
+Reset app data
+```
+
+## Tasks
+
+* Create settings window.
+* Save settings locally.
+* Apply settings immediately where possible.
+* Confirm destructive actions.
+* Add reset option with warning.
+
+## Deliverable
+
+Settings screen.
+
+## Acceptance Criteria
+
+* Settings persist after restart.
+* User can enable launch at login.
+* User can control terminal safety behavior.
+* User can export and import workspace data.
+* Reset app data requires confirmation.
+
+---
+
+# Phase 19: Build Import and Export
+
+## Goal
+
+Allow users to back up and move workspace configs.
+
+## Tasks
+
+* Export all workspaces to JSON.
+* Export individual workspace to JSON.
+* Import workspace JSON.
+* Validate imported files.
+* Handle duplicate workspace IDs.
+* Show import summary.
+* Reject invalid or unsafe files.
+
+## Deliverable
+
+Import/export functionality.
+
+## Acceptance Criteria
+
+* User can export workspaces.
+* User can import previously exported workspaces.
+* Invalid imports do not crash app.
+* Duplicate IDs are regenerated.
+* Import result clearly shows what was added.
+
+---
+
+# Phase 20: Professional Polish, QA, Packaging, and Release
+
+## Goal
+
+Turn the app from working software into a professional V1 product.
+
+## Part A: Error Handling
+
+Add clear errors for:
+
+```text
+Missing app
+Missing file
+Missing folder
+Invalid URL
+Permission denied
+Terminal command failed
+Window move failed
+Storage failed
+Import failed
+Automation failed
+```
+
+Each error should include:
+
+```text
+What failed
+Why it may have failed
+How the user can fix it
+```
+
+---
+
+## Part B: Logging
+
+Add local logs for debugging.
+
+Log:
+
+```text
+Workspace launch started
+Action succeeded
+Action failed
+Permission missing
+Storage error
+Import/export error
+App crash context
+```
+
+Do not log sensitive terminal command output unless user opts in.
+
+---
+
+## Part C: Empty States
+
+Add polished empty states.
+
+Example:
+
+```text
+No workspaces yet.
+Create your first workspace to reopen your work setup in one click.
+```
+
+---
+
+## Part D: UI Polish
+
+Polish:
+
+* icons
+* spacing
+* window sizes
+* menu copy
+* button labels
+* confirmation dialogs
+* progress states
+* success/failure screens
+* onboarding text
+
+The app should feel simple, not technical.
+
+---
+
+## Part E: Testing
+
+Test these cases:
+
+### Workspace Tests
+
+* create workspace
+* edit workspace
+* delete workspace
+* duplicate workspace
+* reorder workspaces
+* save and reload
+
+### Action Tests
+
+* open app
+* open file
+* open folder
+* open URL
+* run terminal command
+* open VS Code project
+* missing app
+* missing file
+* invalid URL
+
+### Permission Tests
+
+* Accessibility granted
+* Accessibility denied
+* Automation granted
+* Automation denied
+* file access denied
+
+### Layout Tests
+
+* single monitor
+* multiple monitors
+* app already open
+* app not open
+* unsupported app
+* minimized window
+* fullscreen window
+
+### Storage Tests
+
+* first launch
+* corrupted JSON
+* missing storage file
+* import valid file
+* import invalid file
+* export data
+
+### Regression Tests
+
+Before every release, confirm:
+
+```text
+App launches
+Menu opens
+Workspace creates
+Workspace launches
+Settings save
+Import/export works
+Quit works
+No crash on missing permissions
+```
+
+---
+
+## Part F: Packaging
+
+Prepare release build:
+
+* sign app
+* notarize app
+* create `.dmg`
+* add app icon
+* add onboarding screen
+* add release notes
+* add privacy policy
+* add terms page
+* add download page
+
+---
+
+## Part G: Licensing
+
+For V1, use simple direct-sale licensing.
+
+Recommended:
+
+```text
+Free:
+- 2 workspaces
+- app/file/folder/URL launching
+
+Paid:
+- unlimited workspaces
+- terminal commands
+- VS Code projects
+- layout restore
+- import/export
+```
+
+License checks should never make the app feel hostile.
+
+---
+
+# Suggested Development Order
+
+Build the product in this exact order:
+
+```text
+1. App skeleton
+2. Menu bar app
+3. Workspace data model
+4. Local storage
+5. Create/edit workspace UI
+6. App/file/folder/URL actions
+7. Workspace launch engine
+8. Terminal commands
+9. VS Code support
+10. Permissions
+11. Window layout restore
+12. Settings
+13. Import/export
+14. Error handling
+15. UI polish
+16. Testing
+17. Packaging
+18. Licensing
+19. Beta release
+20. Public V1 release
+```
+
+---
+
+# V1 Definition of Done
+
+The first version is ready only when all of these are true:
+
+```text
+A user can install the app.
+A user can create a workspace.
+A user can add apps, files, folders, URLs, terminal commands, and VS Code projects.
+A user can launch the workspace from the menu bar.
+The app clearly reports what succeeded and failed.
+The app stores workspaces locally.
+The app survives restart.
+The app handles missing files and missing permissions gracefully.
+The app can import and export workspaces.
+The app has a polished settings screen.
+The app has no known crash bugs.
+The app is signed and notarized.
+The app has a clear free/paid boundary.
+```
+
+---
+
+# Final V1 Mental Picture
+
+The user installs Reopen.
+
+They click the menu bar icon.
+
+They create a workspace called **Coding**.
+
+They add:
+
+```text
+VS Code
+~/Projects/my-app
+Terminal command: npm run dev
+GitHub repo URL
+Localhost URL
+Finder project folder
+```
+
+The next morning, they click:
+
+```text
+Reopen → Coding
+```
+
+The app opens everything, runs the right commands, places supported windows, and shows:
+
+```text
+Coding launched
+
+✓ Opened VS Code
+✓ Opened project folder
+✓ Opened GitHub
+✓ Opened Terminal
+✓ Ran npm run dev
+✓ Restored 3 windows
+```
+
+That is the product.

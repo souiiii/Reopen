@@ -1,0 +1,856 @@
+# Project Specification: Workspace Rehydrator for macOS
+
+## 1. Product Name
+
+Working name: **Reopen**
+
+Alternative names:
+
+* WorkSnap
+* DeskRestore
+* SessionDock
+* LaunchSet
+* SceneDesk
+
+For this specification, the product will be referred to as **Reopen**.
+
+---
+
+# 2. One-Line Description
+
+**Reopen is a macOS menu bar utility that lets users save and restore complete work setups in one click.**
+
+---
+
+# 3. Product Purpose
+
+Modern Mac users constantly switch between different types of work: coding, writing, client projects, research, design, meetings, video editing, and admin tasks.
+
+Each type of work usually requires a specific setup:
+
+* certain apps open
+* specific files or folders open
+* browser tabs restored
+* terminal windows in the right directories
+* code projects opened
+* notes opened
+* windows arranged in a familiar layout
+
+Today, users manually rebuild these setups again and again.
+
+**Reopen solves this by letting users create named workspaces and relaunch them instantly.**
+
+The goal is not to be a full window manager.
+The goal is to answer one simple question:
+
+> “How do I get my Mac back into the exact mode I need for this task?”
+
+---
+
+# 4. Core Product Concept
+
+A **Workspace** is a saved recipe for a working context.
+
+Example workspace:
+
+## “SaaS Coding”
+
+When launched, it opens:
+
+* VS Code with `/Users/william/projects/saas-app`
+* Terminal in the same project folder
+* Chrome with:
+
+  * GitHub repo
+  * Linear board
+  * local development URL
+  * documentation
+* Finder opened to the project folder
+* Notes app opened to “SaaS Ideas”
+* Slack opened
+* windows arranged into a saved rough layout
+
+The user clicks one button, and their Mac is ready.
+
+---
+
+# 5. Target Users
+
+## Primary Users
+
+### Developers
+
+They frequently switch between projects, each with its own repo, terminal commands, browser tabs, documentation, and tools.
+
+### Designers
+
+They use Figma, asset folders, browser references, Slack, and project notes.
+
+### Writers and Researchers
+
+They work with notes, PDFs, browser research tabs, documents, and folders.
+
+### Founders and Operators
+
+They juggle multiple business contexts: marketing, finance, product, customer support, sales, and admin.
+
+### Students and Knowledge Workers
+
+They move between classes, assignments, research projects, and personal tasks.
+
+---
+
+# 6. User Pain
+
+The product exists because users repeatedly experience these problems:
+
+## 6.1 Rebuilding context is annoying
+
+Users often need to manually reopen the same apps, files, tabs, and folders every day.
+
+## 6.2 Project switching is expensive
+
+Switching from one project to another causes friction. The user has to remember what tools and files belong to each project.
+
+## 6.3 macOS does not provide project-level sessions
+
+macOS remembers some windows and apps, but it does not understand workspaces like:
+
+* “open my client project”
+* “restore my coding setup”
+* “switch to writing mode”
+* “open my podcast editing setup”
+
+## 6.4 Existing tools are fragmented
+
+Some apps launch groups of apps.
+Some manage windows.
+Some save browser sessions.
+Some automate scripts.
+
+But few products give a simple, polished, project-level experience.
+
+---
+
+# 7. Product Goal
+
+The goal of Reopen is to become the fastest way to restore a working context on macOS.
+
+The product should feel like:
+
+> “I click one thing, and my Mac becomes ready for the task I want to do.”
+
+---
+
+# 8. What the Product Does
+
+Reopen allows users to:
+
+1. Create named workspaces.
+2. Add apps, files, folders, links, terminal actions, and scripts to each workspace.
+3. Launch a workspace with one click.
+4. Optionally place windows into a saved layout.
+5. Edit, duplicate, import, and export workspaces.
+6. Access everything from the macOS menu bar.
+
+---
+
+# 9. What the Product Does Not Do
+
+This is important for scope control.
+
+Reopen **does not** aim to be:
+
+## 9.1 A full window manager
+
+It should not compete directly with Rectangle, Moom, Magnet, or Aerospace.
+
+It may include basic window placement, but it should not become a complex tiling window manager.
+
+## 9.2 A browser session manager
+
+It can open URLs, but it should not initially try to deeply manage every browser tab, history state, cookies, or tab groups.
+
+## 9.3 A full automation platform
+
+It should not try to become Keyboard Maestro, Raycast, Alfred, Shortcuts, or Hazel.
+
+It can run simple shell commands, but it should remain workspace-focused.
+
+## 9.4 A team collaboration product
+
+The first version is for individual Mac users only.
+
+No accounts, teams, shared workspaces, cloud sync, or enterprise admin features in the MVP.
+
+## 9.5 A perfect OS state restorer
+
+It should not promise to restore every app exactly as it was, especially if third-party apps do not support reopening specific documents or windows.
+
+The promise should be:
+
+> “Reopen your work setup quickly.”
+
+Not:
+
+> “Perfectly reconstruct every pixel of your previous session.”
+
+---
+
+# 10. MVP Feature Set
+
+## 10.1 Menu Bar App
+
+Reopen lives in the macOS menu bar.
+
+Clicking the icon shows:
+
+* list of saved workspaces
+* “Launch Workspace”
+* “Create Workspace”
+* “Edit Workspaces”
+* settings
+* quit
+
+The product should feel lightweight and always available.
+
+---
+
+## 10.2 Workspace Creation
+
+Users can create a workspace with:
+
+* name
+* optional icon
+* optional color
+* description
+* list of actions to run when launched
+
+Example:
+
+```text
+Workspace name: Coding
+Icon: </>
+Description: Opens my development setup
+```
+
+---
+
+## 10.3 Add Apps
+
+Users can add macOS apps to a workspace.
+
+Example:
+
+* Visual Studio Code
+* Terminal
+* Chrome
+* Slack
+* Notion
+* Figma
+* Obsidian
+* Finder
+
+When the workspace launches, Reopen opens those apps.
+
+---
+
+## 10.4 Add Files
+
+Users can add specific files.
+
+Example:
+
+* project brief PDF
+* Markdown note
+* spreadsheet
+* design file
+* text document
+* presentation
+
+When launched, each file opens in its default app.
+
+---
+
+## 10.5 Add Folders
+
+Users can add folders.
+
+Example:
+
+* `/Users/william/Projects/App`
+* `/Users/william/Documents/Clients/Acme`
+* `/Users/william/Desktop/Research`
+
+When launched, folders open in Finder.
+
+---
+
+## 10.6 Add URLs
+
+Users can add URLs to a workspace.
+
+Example:
+
+* GitHub repo
+* Linear board
+* Notion page
+* Google Doc
+* local dev server
+* documentation page
+
+When launched, these open in the default browser.
+
+Later, the user may choose which browser to use, but the MVP can use the default browser.
+
+---
+
+## 10.7 Add Terminal Commands
+
+Users can add terminal actions.
+
+Example:
+
+```bash
+cd ~/Projects/my-app
+npm run dev
+```
+
+Another example:
+
+```bash
+cd ~/Projects/api
+docker compose up
+```
+
+The MVP should support opening Terminal and running commands.
+
+Support for iTerm, Warp, Ghostty, and Kitty can come later.
+
+---
+
+## 10.8 Add Code Projects
+
+Reopen should have a simple shortcut for opening folders in VS Code.
+
+Example:
+
+```bash
+code ~/Projects/my-app
+```
+
+This matters because developers are a strong early market.
+
+Later, support can be added for:
+
+* Cursor
+* JetBrains IDEs
+* Xcode
+* Sublime Text
+* Zed
+
+---
+
+## 10.9 Basic Window Layout Restore
+
+Users can optionally save rough window placement.
+
+The MVP should support:
+
+* left half
+* right half
+* top half
+* bottom half
+* fullscreen
+* centered
+* custom rectangle, where possible
+
+Important: this should be positioned as **best-effort layout restore**.
+
+Some apps may not allow perfect restoration. The product should handle failure gracefully.
+
+---
+
+## 10.10 One-Click Launch
+
+Each workspace has a launch button.
+
+When clicked, Reopen executes the workspace recipe:
+
+1. Open apps.
+2. Open files.
+3. Open folders.
+4. Open URLs.
+5. Run terminal commands.
+6. Apply basic window layout.
+
+The user should not need to think about the details.
+
+---
+
+# 11. Example Workspaces
+
+## 11.1 Coding Workspace
+
+Opens:
+
+* VS Code project
+* Terminal in project directory
+* Chrome tabs:
+
+  * GitHub
+  * local dev server
+  * API docs
+* Docker command
+* Slack
+* Finder project folder
+
+Use case:
+
+> “Start working on my app.”
+
+---
+
+## 11.2 Writing Workspace
+
+Opens:
+
+* Obsidian
+* writing folder
+* research URLs
+* Grammarly
+* Pages or Google Docs
+* music app
+
+Use case:
+
+> “Enter writing mode.”
+
+---
+
+## 11.3 Client Project Workspace
+
+Opens:
+
+* client folder
+* contract PDF
+* Figma file
+* Notion page
+* Slack channel
+* browser dashboard
+
+Use case:
+
+> “Switch to Client A.”
+
+---
+
+## 11.4 Research Workspace
+
+Opens:
+
+* browser tabs
+* PDF folder
+* Zotero
+* Notes
+* Finder research folder
+
+Use case:
+
+> “Resume research without rebuilding everything.”
+
+---
+
+## 11.5 YouTube Editing Workspace
+
+Opens:
+
+* Final Cut Pro
+* assets folder
+* script document
+* thumbnail design file
+* music folder
+* YouTube Studio URL
+
+Use case:
+
+> “Start editing this video.”
+
+---
+
+# 12. Main User Flow
+
+## First-Time Flow
+
+1. User installs Reopen.
+2. Reopen appears in the menu bar.
+3. User clicks “Create Workspace.”
+4. User names the workspace.
+5. User adds apps, files, folders, URLs, and commands.
+6. User clicks “Save.”
+7. Workspace appears in the menu bar.
+8. User clicks workspace name.
+9. Reopen launches the setup.
+
+---
+
+# 13. Product Screens
+
+## 13.1 Menu Bar Dropdown
+
+Contains:
+
+```text
+Reopen
+
+Workspaces
+• Coding
+• Writing
+• Client A
+• Research
+
+Create Workspace
+Manage Workspaces
+Settings
+```
+
+---
+
+## 13.2 Workspace Editor
+
+The editor should have sections:
+
+```text
+Workspace: Coding
+
+Apps
++ Add App
+
+Files
++ Add File
+
+Folders
++ Add Folder
+
+URLs
++ Add URL
+
+Terminal Commands
++ Add Command
+
+Window Layout
++ Save Current Layout
+
+[Save Workspace]
+```
+
+---
+
+## 13.3 Launch Progress View
+
+When launching a workspace:
+
+```text
+Launching Coding...
+
+✓ Opened VS Code
+✓ Opened Terminal
+✓ Opened GitHub
+✓ Opened Finder folder
+⚠ Could not position Slack window
+
+Done
+```
+
+This makes the product feel reliable even when some actions fail.
+
+---
+
+# 14. Settings
+
+MVP settings:
+
+* launch at login
+* show/hide dock icon
+* default browser behavior
+* terminal app preference
+* ask before running shell commands
+* workspace launch delay
+* export all workspaces
+* import workspaces
+
+---
+
+# 15. Permissions Needed
+
+Reopen may require:
+
+## Accessibility Permission
+
+Needed for basic window movement and layout restore.
+
+## Automation Permission
+
+Needed to control other apps using AppleScript or system automation.
+
+## Files and Folders Permission
+
+Needed to access user-selected files and folders.
+
+The app must explain permissions clearly.
+
+Example:
+
+> “Reopen needs Accessibility permission to move and resize windows when restoring layouts.”
+
+---
+
+# 16. Important Product Principles
+
+## 16.1 Keep it simple
+
+The user should understand the product in 10 seconds.
+
+## 16.2 Do not overpromise
+
+Avoid saying:
+
+> “Perfectly restore your Mac.”
+
+Say:
+
+> “Launch your work setup in one click.”
+
+## 16.3 Make workspace creation easy
+
+Creating a workspace should feel like making a playlist.
+
+## 16.4 Best-effort restoration is acceptable
+
+Some apps will behave differently. Reopen should show what succeeded and what failed.
+
+## 16.5 No cloud account in MVP
+
+A local-first utility is faster to build, easier to trust, and easier to sell.
+
+---
+
+# 17. Data Model
+
+A workspace can be stored as local JSON.
+
+Example:
+
+```json
+{
+  "id": "coding",
+  "name": "Coding",
+  "icon": "code",
+  "items": [
+    {
+      "type": "app",
+      "name": "Visual Studio Code",
+      "path": "/Applications/Visual Studio Code.app"
+    },
+    {
+      "type": "folder",
+      "path": "/Users/william/Projects/my-app"
+    },
+    {
+      "type": "url",
+      "url": "https://github.com/example/my-app"
+    },
+    {
+      "type": "terminal_command",
+      "workingDirectory": "/Users/william/Projects/my-app",
+      "command": "npm run dev"
+    }
+  ],
+  "layout": [
+    {
+      "app": "Visual Studio Code",
+      "position": "left-half"
+    },
+    {
+      "app": "Google Chrome",
+      "position": "right-half"
+    }
+  ]
+}
+```
+
+---
+
+# 18. MVP Scope
+
+## Version 1 Should Include
+
+* menu bar app
+* create/edit/delete workspaces
+* launch apps
+* open files
+* open folders
+* open URLs
+* run terminal commands
+* simple VS Code project support
+* import/export JSON
+* basic best-effort window positioning
+* local storage
+* one-time purchase license
+
+---
+
+## Version 1 Should Not Include
+
+* cloud sync
+* team sharing
+* mobile app
+* Windows support
+* browser extension
+* complex automation builder
+* advanced tiling window manager
+* AI workspace suggestions
+* full session snapshotting
+* App Store subscription system
+* account login
+
+---
+
+# 19. Future Features
+
+## Version 2
+
+* save current open apps into a workspace
+* save current browser tabs
+* better multi-monitor layout restore
+* support for iTerm, Warp, Ghostty
+* support for Cursor and JetBrains IDEs
+* workspace hotkeys
+* Raycast extension
+* Shortcuts integration
+* menu bar quick search
+
+## Version 3
+
+* scheduled workspaces
+* workspace templates
+* workspace sharing
+* iCloud sync
+* automatic project detection
+* browser extension for tab capture
+* Focus Mode integration
+* per-workspace wallpapers
+* per-workspace Dock hiding
+* per-workspace notification settings
+
+---
+
+# 20. Monetization
+
+Recommended model:
+
+## Free Version
+
+* up to 2 workspaces
+* basic app/file/folder/URL launching
+* no advanced terminal commands
+* no layout restore
+
+## Paid Version
+
+One-time purchase: **$19–$39**
+
+Includes:
+
+* unlimited workspaces
+* terminal commands
+* window layout restore
+* import/export
+* advanced developer tools
+* future minor updates
+
+Avoid subscription at first. A one-time purchase fits the macOS utility market better and lowers buyer resistance.
+
+---
+
+# 21. Positioning
+
+Primary positioning:
+
+> “Save your Mac work setups. Restore them in one click.”
+
+Alternative positioning:
+
+> “Project-based workspaces for macOS.”
+
+More developer-focused:
+
+> “Open your entire dev environment in one click.”
+
+More general:
+
+> “Stop rebuilding your workspace every morning.”
+
+---
+
+# 22. Competitive Difference
+
+Reopen is not just:
+
+* an app launcher
+* a window manager
+* a browser session saver
+* an automation tool
+
+It combines the simplest useful parts of each into one clear concept:
+
+> **A saved work context.**
+
+That is the mental model users should understand immediately.
+
+---
+
+# 23. Success Criteria
+
+The MVP is successful if users can say:
+
+* “I use this every morning.”
+* “I have one workspace per project.”
+* “It saves me from reopening the same stuff every day.”
+* “It is simpler than setting up Keyboard Maestro or Shortcuts.”
+* “It does not try to do too much.”
+
+---
+
+# 24. Final Product Mental Picture
+
+Reopen is a small macOS menu bar utility.
+
+The user clicks the icon and sees their saved workspaces:
+
+```text
+Coding
+Writing
+Client A
+Research
+Video Editing
+```
+
+They click **Coding**.
+
+Within seconds:
+
+* VS Code opens the right project
+* Terminal opens in the right folder
+* browser tabs open
+* Finder opens the project folder
+* Slack opens
+* windows move into a usable layout
+
+The user does not rebuild their workspace manually.
+
+They do not search for files.
+
+They do not remember which tabs they need.
+
+They simply click the workspace and start working.
