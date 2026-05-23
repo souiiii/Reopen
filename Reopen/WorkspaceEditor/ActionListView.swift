@@ -6,10 +6,14 @@ struct ActionListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             if actions.isEmpty {
-                Text("No actions yet.")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 8)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("No actions yet.")
+                        .fontWeight(.medium)
+                    Text("Add an app, file, folder, URL, terminal command, or VS Code project.")
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 10)
             } else {
                 ForEach($actions) { $action in
                     let index = actions.firstIndex { $0.id == action.id } ?? 0
