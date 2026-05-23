@@ -1,0 +1,807 @@
+Reopen UI/UX Fix — 18-Phase Implementation Plan
+New Product Direction
+
+Before the phases, the core product interaction should change to this:
+
+Reopen should no longer behave like “a menu that opens windows.”
+It should behave like a compact workspace hub anchored to the menu bar.
+
+That means:
+
+no separate Create Workspace window
+no separate Manage Workspaces window
+no separate Launch Result window
+no raw text-only workspace list
+no workflow that forces the user into multiple UI contexts
+
+Instead:
+
+clicking the menu bar icon opens a single custom panel
+that panel contains:
+workspace list
+inline create flow
+inline edit flow
+inline delete controls
+visual workspace summaries
+subtle launch feedback
+
+
+The repo already has separate areas for menu bar UI, workspace editor windows, launch result windows, runner logic, workspace models, storage, settings, and permissions, so this plan intentionally changes the UX layer without rewriting the stable launch/storage system underneath. 
+
+# Expanded UI/UX Fix Plan — 18 Phases
+
+## Phase 1 — Audit Current UI Flow and Freeze the New UX Direction
+
+### Goal
+
+Document exactly what must be removed, kept, and replaced.
+
+### Tasks
+
+* Identify all current entry points:
+
+  * menu bar dropdown
+  * create workspace window
+  * manage workspaces window
+  * launch progress window
+  * launch result window
+  * settings window
+* Mark which flows are being replaced.
+* Confirm the new primary UX:
+
+```text
+Menu bar icon → unified workspace panel → create/edit/delete/launch inline
+```
+
+### Deliverable
+
+A short internal document: `docs/ui-redesign-scope.md`.
+
+### Acceptance Criteria
+
+* The agent knows which old windows are being replaced.
+* The launch engine, storage, workspace models, and permissions are confirmed as reusable.
+* The redesign is scoped as UX replacement, not a full app rewrite.
+
+---
+
+## Phase 2 — Add a Temporary Feature Flag for the New UI
+
+### Goal
+
+Allow the new panel to be built without destroying the old working UI immediately.
+
+### Tasks
+
+* Add a setting or compile-time flag:
+
+```swift
+useUnifiedWorkspacePanel = true
+```
+
+* Keep the old menu/window flow available during development.
+* Route menu bar clicks to either:
+
+  * old `NSMenu` flow
+  * new unified panel flow
+
+### Deliverable
+
+A safe toggle between old and new UI.
+
+### Acceptance Criteria
+
+* App still builds.
+* Old UI still works while new UI is incomplete.
+* New UI can be developed incrementally.
+
+---
+
+## Phase 3 — Replace the Plain Menu with a Custom Anchored Panel Shell
+
+### Goal
+
+Create the new surface that opens from the menu bar icon.
+
+### Tasks
+
+* Build a new custom panel component:
+
+  * `WorkspaceHubPanelController`
+  * `WorkspaceHubPanelView`
+* Use either:
+
+  * `NSPopover`, or
+  * borderless transient `NSPanel`
+* Anchor it to the menu bar status item.
+* Make it dismiss when clicking outside.
+* Make it stay open during creation/editing.
+* Give it an initial fixed size, for example:
+
+```text
+Width: 420–520 px
+Height: 560–680 px
+```
+
+### Deliverable
+
+A blank but functional menu-bar-attached panel.
+
+### Acceptance Criteria
+
+* Clicking the Reopen menu bar icon opens the custom panel.
+* The panel is not a standard text dropdown.
+* It can display SwiftUI content.
+* It closes naturally when dismissed.
+* It does not open the old create/manage windows.
+
+---
+
+## Phase 4 — Create Panel Navigation and UI State
+
+### Goal
+
+Give the panel its own internal state system.
+
+### Tasks
+
+Create a state model such as:
+
+```swift
+enum WorkspaceHubMode {
+    case list
+    case creating
+    case editing(workspaceID: UUID)
+    case launchDetails(workspaceID: UUID)
+}
+```
+
+Track:
+
+* selected workspace
+* expanded card
+* create composer open/closed
+* edit mode
+* delete confirmation state
+* launch status per workspace
+* validation messages
+
+### Deliverable
+
+A clean state layer for the new panel.
+
+### Acceptance Criteria
+
+* The panel can switch between list, create, and edit states.
+* State changes do not require opening new windows.
+* State resets correctly when the panel closes.
+* The code does not mix launch logic directly into view code.
+
+---
+
+## Phase 5 — Build the Native Visual Foundation
+
+### Goal
+
+Create the base visual language before building individual cards.
+
+### Tasks
+
+Create reusable style components:
+
+* glass/material panel background
+* squircle card container
+* subtle border style
+* hover style
+* primary button style
+* quiet icon button style
+* chip/token style
+* section title style
+* empty state style
+
+Suggested files:
+
+```text
+Reopen/DesignSystem/
+  ReopenMaterials.swift
+  ReopenCardStyle.swift
+  ReopenButtons.swift
+  ReopenChips.swift
+  ReopenTypography.swift
+```
+
+### Deliverable
+
+A reusable design system for the new panel.
+
+### Acceptance Criteria
+
+* UI does not use random one-off styling everywhere.
+* Cards, buttons, chips, and sections feel consistent.
+* The panel visually moves toward the liquid-glass/squircle direction.
+* The app feels calmer before functionality is added.
+
+---
+
+## Phase 6 — Build Workspace Summary Logic
+
+### Goal
+
+Generate a readable visual summary of each workspace.
+
+### Tasks
+
+Create a helper such as:
+
+```swift
+WorkspaceSummaryBuilder
+```
+
+It should calculate:
+
+* number of apps
+* number of files
+* number of folders
+* number of URLs
+* number of terminal commands
+* number of VS Code projects
+* whether window restore is enabled
+* app icons or fallback symbols
+* short generated description
+
+Example generated summary:
+
+```text
+3 apps · 2 links · 1 folder · Terminal
+```
+
+### Deliverable
+
+A reusable workspace summary model.
+
+### Acceptance Criteria
+
+* Every workspace can produce a display summary.
+* Empty workspaces show a useful state.
+* Cards do not need to inspect raw action arrays directly.
+* The summary handles all existing action types.
+
+---
+
+## Phase 7 — Build the Workspace Card Component
+
+### Goal
+
+Replace plain text workspace rows with visual workspace cards.
+
+### Tasks
+
+Create:
+
+```text
+WorkspaceCardView
+```
+
+Each card should show:
+
+* workspace name
+* generated or saved description
+* visual action preview
+* app/icon row
+* chips/counts
+* launch affordance
+* edit button
+* delete button
+* optional duplicate/menu button
+
+### Interaction Rules
+
+* Clicking the main card area launches the workspace.
+* Clicking edit enters inline edit mode.
+* Clicking delete starts inline confirmation.
+* Buttons should not feel visually noisy.
+
+### Deliverable
+
+Reusable card view.
+
+### Acceptance Criteria
+
+* A workspace is no longer represented as plain text.
+* User can understand what the workspace contains at a glance.
+* Edit/delete controls are available directly on the card.
+* The card feels polished and native.
+
+---
+
+## Phase 8 — Build the Workspace List Panel
+
+### Goal
+
+Render all existing workspaces inside the new panel.
+
+### Tasks
+
+* Add header area.
+* Add scrollable workspace list.
+* Add polished empty state.
+* Add footer actions:
+
+  * Settings
+  * Quit
+  * maybe Import/Export later
+* Connect the list to `WorkspaceManager`.
+
+### Deliverable
+
+A working visual workspace list inside the panel.
+
+### Acceptance Criteria
+
+* Existing saved workspaces appear as cards.
+* Empty state is polished.
+* Many workspaces scroll correctly.
+* The old text menu is no longer the primary UI.
+
+---
+
+## Phase 9 — Change Workspace Naming Rules
+
+### Goal
+
+Make workspace name optional and auto-generate names.
+
+### Tasks
+
+Currently, the app treats empty names as invalid. Change that behavior at the right layer.
+
+Add logic such as:
+
+```swift
+WorkspaceNameGenerator.nextName(existingWorkspaces)
+```
+
+Rules:
+
+```text
+Blank name → Workspace 1
+Next blank name → Workspace 2
+If Workspace 2 exists → Workspace 3
+```
+
+Update:
+
+* workspace creation draft
+* workspace validator
+* workspace manager create path
+* UI validation message
+* tests
+
+### Deliverable
+
+Optional workspace names with automatic fallback.
+
+### Acceptance Criteria
+
+* User can save a workspace without typing a name.
+* Blank names become `Workspace N`.
+* Existing custom names are not overwritten.
+* Duplicate auto-generated names are avoided.
+* Tests cover auto-name behavior.
+
+---
+
+## Phase 10 — Build the Inline Create Composer Skeleton
+
+### Goal
+
+Remove the need for the current create workspace window.
+
+### Tasks
+
+Inside the panel, add a collapsed composer:
+
+```text
++ New Workspace
+```
+
+When expanded, show:
+
+* optional name field
+* optional description
+* compact action area
+* save button
+* cancel button
+
+Do **not** show the full old form.
+
+### Deliverable
+
+Inline create composer shell.
+
+### Acceptance Criteria
+
+* User can start creating a workspace inside the panel.
+* No separate create window opens.
+* Composer can expand/collapse smoothly.
+* Cancel clears unsaved draft data.
+
+---
+
+## Phase 11 — Add Inline Action Adders to the Composer
+
+### Goal
+
+Allow users to add workspace contents from the panel itself.
+
+### Tasks
+
+Add compact action buttons:
+
+```text
+App
+File
+Folder
+URL
+Terminal
+VS Code
+```
+
+Behavior:
+
+* App/File/Folder/VS Code can still use native file pickers.
+* URL can open inline mini input.
+* Terminal can open inline mini command fields.
+* Added actions appear as chips/rows inside the composer.
+
+### Deliverable
+
+Functional action adding inside the menu panel.
+
+### Acceptance Criteria
+
+* User can add all existing V1 action types from the panel.
+* The create window is no longer needed.
+* Added items are visually summarized immediately.
+* Action adding does not feel like a giant form.
+
+---
+
+## Phase 12 — Build Compact Inline Action Editing
+
+### Goal
+
+Let users adjust newly added actions without opening a full editor window.
+
+### Tasks
+
+For actions shown in composer/editor:
+
+* show icon
+* show short label
+* show remove button
+* allow simple editing where needed:
+
+  * URL text
+  * terminal command
+  * working directory
+  * VS Code project path
+* support reorder if feasible:
+
+  * drag/drop, or
+  * move up/down buttons hidden under more menu
+
+### Deliverable
+
+Compact action row/chip editor.
+
+### Acceptance Criteria
+
+* User can remove an action before saving.
+* User can correct URL and terminal details inline.
+* Action list stays readable.
+* The panel does not become visually cluttered.
+
+---
+
+## Phase 13 — Wire Inline Create Save/Cancel to WorkspaceManager
+
+### Goal
+
+Make the inline composer fully functional.
+
+### Tasks
+
+* Convert composer draft into `Workspace`.
+* Apply auto-name if name is blank.
+* Validate actions.
+* Save using existing `WorkspaceManager`.
+* Collapse composer after successful save.
+* Show inline error if save fails.
+* Refresh card list immediately.
+
+### Deliverable
+
+Complete inline workspace creation.
+
+### Acceptance Criteria
+
+* User can create a full workspace without opening another window.
+* Saved workspace appears instantly as a card.
+* Invalid data shows inline feedback.
+* Storage behavior remains unchanged.
+* Existing workspace persistence tests still pass.
+
+---
+
+## Phase 14 — Build Inline Workspace Editing
+
+### Goal
+
+Replace the manage/edit window for normal editing.
+
+### Tasks
+
+Choose one editing pattern:
+
+### Recommended Pattern
+
+Card expands in place.
+
+Expanded card supports:
+
+* name
+* description
+* action list
+* add action
+* remove action
+* reorder action
+* window restore toggle
+* save
+* cancel
+
+Keep advanced layout capture simple:
+
+```text
+Save Current Layout
+Saved windows: 3
+```
+
+### Deliverable
+
+Inline editor inside the workspace card.
+
+### Acceptance Criteria
+
+* User can edit a workspace from its card.
+* No manage window opens for normal editing.
+* Cancel restores previous state.
+* Save persists through `WorkspaceManager.updateWorkspace`.
+* Existing saved actions are preserved correctly.
+
+---
+
+## Phase 15 — Add Inline Delete, Duplicate, and Reorder
+
+### Goal
+
+Move workspace management controls into the panel.
+
+### Tasks
+
+### Delete
+
+* Add delete button on every card.
+* First click reveals confirmation.
+* Second click deletes.
+* Escape/click away cancels delete confirmation.
+
+### Duplicate
+
+* Add duplicate option, probably under a small more button.
+
+### Reorder
+
+Support either:
+
+* drag and drop cards, or
+* simple move up/down controls under more menu.
+
+### Deliverable
+
+Workspace management inside the panel.
+
+### Acceptance Criteria
+
+* User can delete from the card.
+* Delete requires confirmation.
+* User can duplicate without opening manage window.
+* User can reorder without opening manage window.
+* The old manage window is no longer needed for core use.
+
+---
+
+## Phase 16 — Replace Progress and Result Windows with Quiet Inline Feedback
+
+### Goal
+
+Remove the disruptive launch result screen.
+
+### Tasks
+
+Change launch feedback behavior:
+
+### During launch
+
+Show on the workspace card:
+
+```text
+Launching…
+```
+
+with a small spinner/progress indicator.
+
+### On success
+
+Show subtle temporary state:
+
+```text
+Launched
+```
+
+Then fade back to normal.
+
+### On failure
+
+Show inline warning:
+
+```text
+Some items failed
+Show details
+```
+
+When expanded, show:
+
+* failed item
+* reason
+* repair action if available
+
+### Important
+
+Do not delete existing launch result data models.
+Only stop presenting the separate result/progress windows by default.
+
+### Deliverable
+
+Quiet launch feedback inside the panel.
+
+### Acceptance Criteria
+
+* Successful launch does not open a new result window.
+* Launch progress does not open a new progress window.
+* Failures are still visible and recoverable.
+* The user’s flow is not interrupted.
+
+---
+
+## Phase 17 — Move Secondary Utilities into a Calm Footer or Settings Area
+
+### Goal
+
+Avoid cluttering the main workspace experience.
+
+### Tasks
+
+Decide what belongs in the panel footer:
+
+Keep visible:
+
+* Settings
+* Quit
+
+Maybe hide under more menu:
+
+* Import
+* Export
+* Reset app data
+* View logs
+* License/upgrade
+
+Settings may remain a separate window because it is not part of the frequent workspace flow. The main target is removing create/manage/result windows, not necessarily removing every settings window.
+
+### Deliverable
+
+Clean utility area.
+
+### Acceptance Criteria
+
+* Main panel is focused on workspaces.
+* Settings does not compete with Launch/Create.
+* Rare admin actions are not visually prominent.
+* The panel does not become a junk drawer.
+
+---
+
+## Phase 18 — Remove Old Primary UI Routes, QA, and Polish
+
+### Goal
+
+Make the new workflow the default and clean up old UX paths.
+
+### Tasks
+
+Remove or deprecate primary use of:
+
+* `WorkspaceEditorWindowController`
+* `ManageWorkspacesWindowController`
+* `LaunchProgressWindowController`
+* `LaunchResultWindowController`
+
+Keep code temporarily only if needed for fallback/debug, but do not route normal users there.
+
+Run QA for:
+
+* create workspace
+* blank-name workspace
+* edit workspace
+* delete workspace
+* duplicate workspace
+* reorder workspace
+* launch workspace
+* launch failures
+* permission failures
+* missing file repair
+* terminal confirmation
+* VS Code launch
+* window restore
+* import/export
+* license gates
+* panel open/close behavior
+* scrolling with many workspaces
+* keyboard navigation
+* escape/click-outside behavior
+
+### Deliverable
+
+Production-ready unified panel UX.
+
+### Acceptance Criteria
+
+* The user can perform the full core workflow from the menu panel.
+* The old annoying windows no longer appear during normal use.
+* Successful launches are quiet.
+* Failures are recoverable but not disruptive.
+* The app feels fast, polished, and native.
+
+---
+
+# Recommended Agent Execution Order
+
+Use this order exactly:
+
+```text
+1. Audit current UI flow
+2. Add feature flag
+3. Build custom anchored panel
+4. Add panel state/navigation
+5. Add design system
+6. Add workspace summary builder
+7. Build workspace cards
+8. Build workspace list
+9. Add auto workspace naming
+10. Build inline create composer
+11. Add inline action adders
+12. Add compact action editing
+13. Wire inline create save/cancel
+14. Build inline workspace editing
+15. Add inline delete/duplicate/reorder
+16. Replace launch result windows with inline feedback
+17. Move secondary utilities into calm footer/settings
+18. Remove old primary routes and run full QA
+```
+
+# The Key Rule for the Agent
+
+Do **not** rewrite the backend systems unless necessary.
+
+The existing app already has working workspace models, storage, launch execution, permissions, settings, and import/export. The redesign should mostly replace the **presentation and workflow layer**, while continuing to use the stable underlying managers and runner services.

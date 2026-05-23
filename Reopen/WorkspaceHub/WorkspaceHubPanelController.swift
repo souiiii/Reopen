@@ -1,0 +1,60 @@
+import AppKit
+import SwiftUI
+
+@MainActor
+final class WorkspaceHubPanelController: NSObject, NSPopoverDelegate {
+    private enum Metrics {
+        static let contentSize = NSSize(width: 480, height: 620)
+    }
+
+    private let environment: AppEnvironment
+    private let popover: NSPopover
+
+    init(environment: AppEnvironment) {
+        self.environment = environment
+        self.popover = NSPopover()
+        super.init()
+
+        configurePopover()
+    }
+
+    var isShown: Bool {
+        popover.isShown
+    }
+
+    func toggle(relativeTo button: NSStatusBarButton) {
+        if popover.isShown {
+            close()
+        } else {
+            show(relativeTo: button)
+        }
+    }
+
+    func show(relativeTo button: NSStatusBarButton) {
+        guard !popover.isShown else {
+            return
+        }
+
+        popover.show(
+            relativeTo: button.bounds,
+            of: button,
+            preferredEdge: .minY
+        )
+        popover.contentViewController?.view.window?.makeKey()
+    }
+
+    func close() {
+        popover.performClose(nil)
+    }
+
+    private func configurePopover() {
+        popover.behavior = .transient
+        popover.animates = true
+        popover.contentSize = Metrics.contentSize
+        popover.delegate = self
+        popover.contentViewController = NSHostingController(
+            rootView: WorkspaceHubPanelView()
+                .environmentObject(environment.appState)
+        )
+    }
+}

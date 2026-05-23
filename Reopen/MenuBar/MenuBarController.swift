@@ -4,6 +4,7 @@ import AppKit
 final class MenuBarController: NSObject {
     private let environment: AppEnvironment
     private let statusItem: NSStatusItem
+    private var workspaceHubPanelController: WorkspaceHubPanelController?
 
     init(environment: AppEnvironment) {
         self.environment = environment
@@ -13,14 +14,16 @@ final class MenuBarController: NSObject {
 
     func install() {
         environment.appState.onWorkspaceListChanged = { [weak self] in
-            self?.rebuildMenu()
+            self?.workspaceListDidChange()
         }
         configureStatusButton()
-        rebuildMenu()
+        configurePrimaryUIRoute()
     }
 
     func uninstall() {
         environment.appState.onWorkspaceListChanged = nil
+        workspaceHubPanelController?.close()
+        workspaceHubPanelController = nil
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
@@ -39,7 +42,31 @@ final class MenuBarController: NSObject {
         }
     }
 
-    private func rebuildMenu() {
+    private func configurePrimaryUIRoute() {
+        if environment.featureFlags.useUnifiedWorkspacePanel {
+            statusItem.menu = nil
+            statusItem.button?.target = self
+            statusItem.button?.action = #selector(toggleUnifiedWorkspacePanel)
+        } else {
+            statusItem.button?.target = nil
+            statusItem.button?.action = nil
+            rebuildLegacyMenu()
+        }
+    }
+
+    private func workspaceListDidChange() {
+        guard !environment.featureFlags.useUnifiedWorkspacePanel else {
+            return
+        }
+
+        rebuildLegacyMenu()
+    }
+
+    private func rebuildLegacyMenu() {
+        statusItem.menu = makeLegacyMenu()
+    }
+
+    private func makeLegacyMenu() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
 
@@ -101,7 +128,23 @@ final class MenuBarController: NSObject {
         quitItem.isEnabled = true
         menu.addItem(quitItem)
 
-        statusItem.menu = menu
+        return menu
+    }
+
+    @objc private func toggleUnifiedWorkspacePanel() {
+        showUnifiedWorkspacePanel()
+    }
+
+    private func showUnifiedWorkspacePanel() {
+        guard let button = statusItem.button else {
+            return
+        }
+
+        if workspaceHubPanelController == nil {
+            workspaceHubPanelController = WorkspaceHubPanelController(environment: environment)
+        }
+
+        workspaceHubPanelController?.toggle(relativeTo: button)
     }
 
     @objc private func launchWorkspace(_ sender: NSMenuItem) {

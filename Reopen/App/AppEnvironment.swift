@@ -11,6 +11,7 @@ final class AppEnvironment {
     let permissionManager: PermissionManager
     let settingsManager: SettingsManager
     let errorLogger: ErrorLogger
+    let featureFlags: AppFeatureFlags
 
     private init(
         appState: AppState,
@@ -21,7 +22,8 @@ final class AppEnvironment {
         workspaceRunner: WorkspaceRunner,
         permissionManager: PermissionManager,
         settingsManager: SettingsManager,
-        errorLogger: ErrorLogger
+        errorLogger: ErrorLogger,
+        featureFlags: AppFeatureFlags
     ) {
         self.appState = appState
         self.windowPresenter = windowPresenter
@@ -32,9 +34,11 @@ final class AppEnvironment {
         self.permissionManager = permissionManager
         self.settingsManager = settingsManager
         self.errorLogger = errorLogger
+        self.featureFlags = featureFlags
     }
 
     static func bootstrap() -> AppEnvironment {
+        let featureFlags = AppFeatureFlags.current
         let storageManager = StorageManager()
         let backupManager = JSONBackupManager(storageManager: storageManager)
         let workspaceStore = WorkspaceStore(
@@ -114,7 +118,8 @@ final class AppEnvironment {
             workspaceRunner: workspaceRunner,
             permissionManager: permissionManager,
             settingsManager: settingsManager,
-            errorLogger: errorLogger
+            errorLogger: errorLogger,
+            featureFlags: featureFlags
         )
     }
 }
