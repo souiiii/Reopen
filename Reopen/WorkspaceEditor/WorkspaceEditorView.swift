@@ -3,22 +3,26 @@ import SwiftUI
 struct WorkspaceEditorView: View {
     @State private var draft: WorkspaceCreationDraft
     @State private var errorMessage: String?
+    @State private var layoutMessage: String?
 
     let title: String
     let saveButtonTitle: String
     let onSave: (WorkspaceCreationDraft) throws -> Void
     let onCancel: () -> Void
+    private let windowManager: WindowManager
 
     init(
         title: String,
         saveButtonTitle: String,
         draft: WorkspaceCreationDraft = WorkspaceCreationDraft(),
+        windowManager: WindowManager = WindowManager(),
         onSave: @escaping (WorkspaceCreationDraft) throws -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.title = title
         self.saveButtonTitle = saveButtonTitle
         self._draft = State(initialValue: draft)
+        self.windowManager = windowManager
         self.onSave = onSave
         self.onCancel = onCancel
     }
@@ -37,6 +41,7 @@ struct WorkspaceEditorView: View {
 
                     workspaceDetailsSection
                     actionsSection
+                    windowLayoutSection
                 }
                 .padding(24)
             }
@@ -91,6 +96,68 @@ struct WorkspaceEditorView: View {
             actionButtons
 
             ActionListView(actions: $draft.actions)
+        }
+    }
+
+    private var windowLayoutSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Best-effort Window Restore")
+                .font(.headline)
+
+            Toggle("Enable window restore", isOn: $draft.isWindowRestoreEnabled)
+
+            HStack(spacing: 8) {
+                Button {
+                    saveCurrentWindowLayout()
+                } label: {
+                    Label("Save Current Layout", systemImage: "rectangle.on.rectangle")
+                }
+                .disabled(!draft.isWindowRestoreEnabled)
+
+                if let layoutMessage {
+                    Text(layoutMessage)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+            if draft.windowLayouts.isEmpty {
+                Text("No saved windows")
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach($draft.windowLayouts) { $layout in
+                        HStack(spacing: 10) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(layout.windowTitle?.isEmpty == false ? layout.windowTitle! : layout.appBundleIdentifier)
+                                    .fontWeight(.medium)
+                                Text(layout.appBundleIdentifier)
+                                    .foregroundStyle(.secondary)
+                                    .font(.caption)
+                            }
+
+                            Spacer()
+
+                            Picker("Placement", selection: $layout.placement) {
+                                ForEach(WindowPlacement.allCases, id: \.self) { placement in
+                                    Text(placement.title).tag(placement)
+                                }
+                            }
+                            .labelsHidden()
+                            .frame(width: 170)
+
+                            Button(role: .destructive) {
+                                draft.windowLayouts.removeAll { $0.id == layout.id }
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.borderless)
+                            .help("Remove saved window")
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
         }
     }
 
@@ -183,6 +250,19 @@ struct WorkspaceEditorView: View {
             errorMessage = error.userFacingMessage
         } catch {
             errorMessage = "Workspace could not be saved."
+        }
+    }
+
+    private func saveCurrentWindowLayout() {
+        do {
+            let layouts = try windowManager.captureCurrentLayout(matching: draft.layoutCaptureBundleIdentifiers)
+            draft.windowLayouts = layouts
+            layoutMessage = "\(layouts.count) saved"
+            errorMessage = nil
+        } catch let error as WindowManagerError {
+            layoutMessage = error.userFacingMessage
+        } catch {
+            layoutMessage = "Best-effort window layout could not be saved."
         }
     }
 }

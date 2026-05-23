@@ -47,7 +47,8 @@ final class WorkspaceManager {
         color: String? = nil,
         description: String? = nil,
         actions: [WorkspaceAction] = [],
-        windowLayouts: [WindowLayout] = []
+        windowLayouts: [WindowLayout] = [],
+        isWindowRestoreEnabled: Bool = true
     ) throws -> Workspace {
         try createWorkspace(
             Workspace(
@@ -56,7 +57,8 @@ final class WorkspaceManager {
                 color: color,
                 description: description,
                 actions: actions,
-                windowLayouts: windowLayouts
+                windowLayouts: windowLayouts,
+                isWindowRestoreEnabled: isWindowRestoreEnabled
             )
         )
     }
@@ -173,6 +175,7 @@ private extension Workspace {
             description: description,
             actions: actions.map { $0.duplicated() },
             windowLayouts: windowLayouts.map { $0.duplicated() },
+            isWindowRestoreEnabled: isWindowRestoreEnabled,
             createdAt: Date(),
             updatedAt: Date()
         )
@@ -234,6 +237,7 @@ private extension WindowLayout {
             appBundleIdentifier: appBundleIdentifier,
             windowTitle: windowTitle,
             screenIdentifier: screenIdentifier,
+            placement: placement,
             x: x,
             y: y,
             width: width,

@@ -70,7 +70,8 @@ final class WorkspaceRunner: @unchecked Sendable {
         )
 
         let totalActionCount = launchableActionCount(in: workspace)
-        let totalUnitCount = max(totalActionCount + workspace.windowLayouts.count, 1)
+        let layoutUnitCount = workspace.isWindowRestoreEnabled ? workspace.windowLayouts.count : 0
+        let totalUnitCount = max(totalActionCount + layoutUnitCount, 1)
         var completedUnits = 0
 
         publishProgress(
@@ -246,9 +247,9 @@ final class WorkspaceRunner: @unchecked Sendable {
             append(skippedResult, to: &result)
         }
 
-        let restorableLayouts = workspace.windowLayouts.filter { layout in
+        let restorableLayouts = workspace.isWindowRestoreEnabled ? workspace.windowLayouts.filter { layout in
             !permissionReport.blockedLayoutIDs.contains(layout.id)
-        }
+        } : []
 
         if !restorableLayouts.isEmpty {
             publishProgress(

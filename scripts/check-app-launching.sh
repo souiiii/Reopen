@@ -23,6 +23,10 @@ swiftc \
   "$ROOT_DIR/Reopen/Runner/TerminalCommandSafety.swift" \
   "$ROOT_DIR/Reopen/Runner/AppleScriptTerminalExecutor.swift" \
   "$ROOT_DIR/Reopen/Runner/TerminalManager.swift" \
+  "$ROOT_DIR/Reopen/Windows/WindowFrame.swift" \
+  "$ROOT_DIR/Reopen/Windows/AccessibilityWindowService.swift" \
+  "$ROOT_DIR/Reopen/Windows/WindowLayoutCalculator.swift" \
+  "$ROOT_DIR/Reopen/Windows/WindowManager.swift" \
   "$ROOT_DIR/Reopen/Runner/WindowLayoutRestorer.swift" \
   "$ROOT_DIR/Reopen/Runner/WorkspaceRunner.swift" \
   "$ROOT_DIR/scripts/check-app-launching.swift" \

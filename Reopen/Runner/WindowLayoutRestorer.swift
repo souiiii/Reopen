@@ -5,7 +5,13 @@ final class WindowLayoutRestorer {
 
     private let restoreLayouts: RestoreLayouts
 
-    init(restoreLayouts: @escaping RestoreLayouts = WindowLayoutRestorer.defaultRestore) {
+    init(windowManager: WindowManager = WindowManager()) {
+        self.restoreLayouts = { layouts in
+            windowManager.restore(layouts)
+        }
+    }
+
+    init(restoreLayouts: @escaping RestoreLayouts) {
         self.restoreLayouts = restoreLayouts
     }
 
@@ -13,16 +19,4 @@ final class WindowLayoutRestorer {
         restoreLayouts(layouts)
     }
 
-    private static func defaultRestore(_ layouts: [WindowLayout]) -> [ActionLaunchResult] {
-        layouts.map { layout in
-            ActionLaunchResult(
-                actionID: layout.id,
-                actionType: "windowLayout",
-                title: layout.windowTitle ?? layout.appBundleIdentifier,
-                status: .skipped,
-                message: "Window layout restore will be implemented in Phase 17.",
-                errorCode: "window_layout_pending"
-            )
-        }
-    }
 }

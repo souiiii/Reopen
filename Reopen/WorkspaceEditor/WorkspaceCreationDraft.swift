@@ -22,6 +22,7 @@ struct WorkspaceCreationDraft: Equatable {
     var description = ""
     var actions: [WorkspaceActionDraft] = []
     var windowLayouts: [WindowLayout] = []
+    var isWindowRestoreEnabled = true
     var createdAt: Date?
 
     init(
@@ -32,6 +33,7 @@ struct WorkspaceCreationDraft: Equatable {
         description: String = "",
         actions: [WorkspaceActionDraft] = [],
         windowLayouts: [WindowLayout] = [],
+        isWindowRestoreEnabled: Bool = true,
         createdAt: Date? = nil
     ) {
         self.id = id
@@ -41,6 +43,7 @@ struct WorkspaceCreationDraft: Equatable {
         self.description = description
         self.actions = actions
         self.windowLayouts = windowLayouts
+        self.isWindowRestoreEnabled = isWindowRestoreEnabled
         self.createdAt = createdAt
     }
 
@@ -53,6 +56,7 @@ struct WorkspaceCreationDraft: Equatable {
             description: workspace.description ?? "",
             actions: workspace.actions.map(WorkspaceActionDraft.init(action:)),
             windowLayouts: workspace.windowLayouts,
+            isWindowRestoreEnabled: workspace.isWindowRestoreEnabled,
             createdAt: workspace.createdAt
         )
     }
@@ -82,6 +86,7 @@ struct WorkspaceCreationDraft: Equatable {
             description: optionalTrimmed(description),
             actions: try actions.map { try $0.makeWorkspaceAction() },
             windowLayouts: windowLayouts,
+            isWindowRestoreEnabled: isWindowRestoreEnabled,
             createdAt: createdAt ?? Date(),
             updatedAt: Date()
         )
@@ -90,6 +95,30 @@ struct WorkspaceCreationDraft: Equatable {
     private func optionalTrimmed(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+extension WorkspaceCreationDraft {
+    var layoutCaptureBundleIdentifiers: Set<String>? {
+        var identifiers = Set<String>()
+
+        for action in actions {
+            switch action.kind {
+            case .openApp:
+                if let bundleIdentifier = action.bundleIdentifier, !bundleIdentifier.isEmpty {
+                    identifiers.insert(bundleIdentifier)
+                }
+            case .terminalCommand:
+                identifiers.insert("com.apple.Terminal")
+            case .openVSCodeProject:
+                identifiers.insert("com.microsoft.VSCode")
+                identifiers.insert("com.microsoft.VSCodeInsiders")
+            default:
+                continue
+            }
+        }
+
+        return identifiers.isEmpty ? nil : identifiers
     }
 }
 

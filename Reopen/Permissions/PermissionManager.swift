@@ -60,7 +60,7 @@ final class PermissionManager: @unchecked Sendable {
     }
 
     private func appendAccessibilityIssues(for workspace: Workspace, to report: inout WorkspacePermissionReport) {
-        guard !workspace.windowLayouts.isEmpty else {
+        guard workspace.isWindowRestoreEnabled, !workspace.windowLayouts.isEmpty else {
             return
         }
 
