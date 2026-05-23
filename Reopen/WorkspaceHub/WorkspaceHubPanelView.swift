@@ -4,6 +4,7 @@ struct WorkspaceHubPanelView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject var state: WorkspaceHubState
     let onLaunchWorkspace: (UUID) -> Void
+    let onSaveCreateWorkspace: () -> Void
     let onOpenSettings: () -> Void
     let onQuit: () -> Void
 
@@ -82,14 +83,8 @@ struct WorkspaceHubPanelView: View {
     @ViewBuilder
     private var content: some View {
         switch state.mode {
-        case .list:
-            listContent
-        case .creating:
-            modeContent(
-                title: "New Workspace",
-                systemImage: "plus.circle",
-                validationMessage: state.validationMessage(for: .create)
-            )
+        case .list, .creating:
+            workspaceListContent
         case .editing(let workspaceID):
             modeContent(
                 title: "Edit \(workspaceTitle(for: workspaceID))",
@@ -107,46 +102,55 @@ struct WorkspaceHubPanelView: View {
         }
     }
 
-    private var listContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if appState.workspaces.isEmpty {
-                VStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(Color.accentColor.opacity(0.12))
-                            .frame(width: 58, height: 58)
-
-                        Image(systemName: "square.grid.2x2")
-                            .font(.system(size: 30, weight: .semibold))
-                            .foregroundColor(.accentColor)
-                    }
-
-                    Text("No workspaces yet")
-                        .font(.headline)
-
-                    Text("Create a workspace to keep the apps, files, links, and commands you reopen often.")
-                        .reopenBodySecondary()
-
-                    Button {
+    private var workspaceListContent: some View {
+        ScrollView {
+            LazyVStack(spacing: 10) {
+                WorkspaceCreateComposerView(
+                    draft: $state.createDraft,
+                    isExpanded: state.isCreateComposerPresented,
+                    validationMessage: state.validationMessage(for: .create),
+                    onExpand: {
                         state.startCreating()
-                    } label: {
-                        Label("New Workspace", systemImage: "plus")
+                    },
+                    onSave: onSaveCreateWorkspace,
+                    onCancel: {
+                        state.cancelCreating()
                     }
-                    .buttonStyle(.reopenPrimary)
+                )
+
+                if appState.workspaces.isEmpty && !state.isCreateComposerPresented {
+                    emptyState
                 }
-                .reopenEmptyStateStyle()
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        ForEach(appState.workspaces) { workspace in
-                            workspaceCard(workspace)
-                        }
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
+
+                ForEach(appState.workspaces) { workspace in
+                    workspaceCard(workspace)
                 }
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
         }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.12))
+                    .frame(width: 58, height: 58)
+
+                Image(systemName: "square.grid.2x2")
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundColor(.accentColor)
+            }
+
+            Text("No workspaces yet")
+                .font(.headline)
+
+            Text("Create a workspace to keep the apps, files, links, and commands you reopen often.")
+                .reopenBodySecondary()
+        }
+        .reopenEmptyStateStyle()
+        .frame(minHeight: 280)
     }
 
     private var footer: some View {
@@ -255,7 +259,19 @@ struct WorkspaceHubPanelView: View {
     }
 
     private var showsFooter: Bool {
+        if case .editing = state.mode {
+            return false
+        }
+
+        if case .launchDetails = state.mode {
+            return false
+        }
+
         if case .list = state.mode {
+            return true
+        }
+
+        if case .creating = state.mode {
             return true
         }
 

@@ -56,6 +56,7 @@ final class WorkspaceHubState: ObservableObject {
     @Published private(set) var deleteConfirmationWorkspaceID: UUID?
     @Published private(set) var launchStatusesByWorkspaceID: [UUID: WorkspaceHubLaunchStatus] = [:]
     @Published private(set) var validationMessages: [WorkspaceHubValidationScope: String] = [:]
+    @Published var createDraft = WorkspaceCreationDraft()
 
     func showList() {
         mode = .list
@@ -63,6 +64,7 @@ final class WorkspaceHubState: ObservableObject {
         isCreateComposerPresented = false
         deleteConfirmationWorkspaceID = nil
         validationMessages.removeAll()
+        createDraft = WorkspaceCreationDraft()
     }
 
     func startCreating() {
@@ -74,12 +76,31 @@ final class WorkspaceHubState: ObservableObject {
         validationMessages.removeValue(forKey: .create)
     }
 
+    func cancelCreating() {
+        mode = .list
+        selectedWorkspaceID = nil
+        expandedWorkspaceID = nil
+        isCreateComposerPresented = false
+        createDraft = WorkspaceCreationDraft()
+        validationMessages.removeValue(forKey: .create)
+    }
+
+    func finishCreating(savedWorkspaceID: UUID) {
+        mode = .list
+        selectedWorkspaceID = savedWorkspaceID
+        expandedWorkspaceID = savedWorkspaceID
+        isCreateComposerPresented = false
+        createDraft = WorkspaceCreationDraft()
+        validationMessages.removeValue(forKey: .create)
+    }
+
     func startEditing(workspaceID: UUID) {
         mode = .editing(workspaceID: workspaceID)
         selectedWorkspaceID = workspaceID
         expandedWorkspaceID = workspaceID
         isCreateComposerPresented = false
         deleteConfirmationWorkspaceID = nil
+        createDraft = WorkspaceCreationDraft()
         validationMessages.removeValue(forKey: .workspace(workspaceID))
     }
 
@@ -89,6 +110,7 @@ final class WorkspaceHubState: ObservableObject {
         expandedWorkspaceID = workspaceID
         isCreateComposerPresented = false
         deleteConfirmationWorkspaceID = nil
+        createDraft = WorkspaceCreationDraft()
     }
 
     func selectWorkspace(_ workspaceID: UUID?) {
@@ -144,5 +166,6 @@ final class WorkspaceHubState: ObservableObject {
         deleteConfirmationWorkspaceID = nil
         launchStatusesByWorkspaceID.removeAll()
         validationMessages.removeAll()
+        createDraft = WorkspaceCreationDraft()
     }
 }

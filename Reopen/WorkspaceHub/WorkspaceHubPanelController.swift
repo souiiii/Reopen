@@ -64,6 +64,9 @@ final class WorkspaceHubPanelController: NSObject, NSPopoverDelegate {
                 onLaunchWorkspace: { [weak self] workspaceID in
                     self?.launchWorkspace(id: workspaceID)
                 },
+                onSaveCreateWorkspace: { [weak self] in
+                    self?.saveCreateWorkspace()
+                },
                 onOpenSettings: { [weak self] in
                     self?.openSettings()
                 },
@@ -102,6 +105,20 @@ final class WorkspaceHubPanelController: NSObject, NSPopoverDelegate {
                 }
             }
         )
+    }
+
+    private func saveCreateWorkspace() {
+        do {
+            let workspace = try state.createDraft.makeWorkspace()
+            let savedWorkspace = try environment.workspaceManager.createWorkspace(workspace)
+            state.finishCreating(savedWorkspaceID: savedWorkspace.id)
+        } catch let error as WorkspaceCreationError {
+            state.setValidationMessage(error.userFacingMessage, for: .create)
+        } catch let error as WorkspaceManagerError {
+            state.setValidationMessage(error.userFacingMessage, for: .create)
+        } catch {
+            state.setValidationMessage("Workspace could not be saved.", for: .create)
+        }
     }
 
     private func openSettings() {
