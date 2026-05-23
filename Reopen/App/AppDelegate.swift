@@ -15,7 +15,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if environment.appState.workspaces.isEmpty && !environment.settingsManager.settings.hasCompletedOnboarding {
             environment.windowPresenter.showOnboarding(
                 workspaceManager: environment.workspaceManager,
-                settingsManager: environment.settingsManager
+                settingsManager: environment.settingsManager,
+                onCreateWorkspace: { [weak menuBarController] in
+                    menuBarController?.showCreateWorkspaceEntryPoint()
+                }
             )
         }
 

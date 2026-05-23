@@ -24,6 +24,7 @@ enum WorkspaceHubStateChecks {
         try createComposerCancelClearsDraft()
         try createComposerFinishClearsDraftAndSelectsWorkspace()
         try leavingCreateComposerClearsDraft()
+        try cancelEditingClearsDraft()
 
         print("Workspace hub state checks passed.")
     }
@@ -63,14 +64,20 @@ enum WorkspaceHubStateChecks {
     @MainActor
     private static func leavingCreateComposerClearsDraft() throws {
         let state = WorkspaceHubState()
-        let workspaceID = UUID()
+        let workspace = Workspace(
+            id: UUID(),
+            name: "Coding",
+            actions: [.openURL(OpenURLAction(url: "https://example.com"))]
+        )
+        let workspaceID = workspace.id
 
         state.startCreating()
         state.createDraft.name = "Hidden Draft"
-        state.startEditing(workspaceID: workspaceID)
+        state.startEditing(workspace: workspace)
 
         try check(!state.isCreateComposerPresented, "Editing should collapse the create composer.")
         try check(state.createDraft == WorkspaceCreationDraft(), "Leaving create mode should clear unsaved draft data.")
+        try check(state.editDraft == WorkspaceCreationDraft(workspace: workspace), "Editing should load the selected workspace into a draft.")
 
         state.startCreating()
         state.createDraft.name = "Launch Draft"
@@ -78,5 +85,20 @@ enum WorkspaceHubStateChecks {
 
         try check(!state.isCreateComposerPresented, "Launch details should collapse the create composer.")
         try check(state.createDraft == WorkspaceCreationDraft(), "Launch details should clear unsaved draft data.")
+    }
+
+    @MainActor
+    private static func cancelEditingClearsDraft() throws {
+        let state = WorkspaceHubState()
+        let workspace = Workspace(name: "Writing")
+
+        state.startEditing(workspace: workspace)
+        state.editDraft.name = "Unsaved"
+        state.setEditLayoutMessage("Saved windows: 2")
+        state.cancelEditing()
+
+        try check(state.mode == .list, "Cancel editing should return to the list.")
+        try check(state.editDraft == WorkspaceCreationDraft(), "Cancel editing should clear the edit draft.")
+        try check(state.editLayoutMessage == nil, "Cancel editing should clear layout messages.")
     }
 }

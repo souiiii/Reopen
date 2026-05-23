@@ -71,16 +71,16 @@ enum WorkspaceRunnerChecks {
         let recorder = Recorder()
         let runner = makeRunner(recorder: recorder)
         let workspace = Workspace(
-            name: "",
+            name: "Invalid",
             actions: [
-                .openApp(OpenAppAction(name: "Fake", path: appURL.path))
+                .openApp(OpenAppAction(name: "", path: appURL.path))
             ]
         )
 
         let result = runner.launchWorkspaceActions(in: workspace)
 
-        try check(result.actionResults.count == 1, "Invalid workspace should return one validation result.")
-        try check(result.actionResults[0].status == .failed, "Invalid workspace should fail validation.")
+        try check(result.actionResults.count == 1, "Invalid action should return one validation result.")
+        try check(result.actionResults[0].status == .failed, "Invalid action should fail validation.")
         try check(result.actionResults[0].errorCode == "workspace_validation_failed", "Validation failure should use workspace_validation_failed.")
         try check(recorder.openedApps.isEmpty, "Validation failure should not launch actions.")
     }

@@ -27,6 +27,15 @@ final class MenuBarController: NSObject {
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
+    func showCreateWorkspaceEntryPoint() {
+        guard environment.featureFlags.useUnifiedWorkspacePanel else {
+            createWorkspace()
+            return
+        }
+
+        showUnifiedCreateWorkspacePanel()
+    }
+
     private func configureStatusButton() {
         guard let button = statusItem.button else {
             return
@@ -145,6 +154,18 @@ final class MenuBarController: NSObject {
         }
 
         workspaceHubPanelController?.toggle(relativeTo: button)
+    }
+
+    private func showUnifiedCreateWorkspacePanel() {
+        guard let button = statusItem.button else {
+            return
+        }
+
+        if workspaceHubPanelController == nil {
+            workspaceHubPanelController = WorkspaceHubPanelController(environment: environment)
+        }
+
+        workspaceHubPanelController?.showCreateComposer(relativeTo: button)
     }
 
     @objc private func launchWorkspace(_ sender: NSMenuItem) {

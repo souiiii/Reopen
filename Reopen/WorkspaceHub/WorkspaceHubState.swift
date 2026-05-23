@@ -56,7 +56,9 @@ final class WorkspaceHubState: ObservableObject {
     @Published private(set) var deleteConfirmationWorkspaceID: UUID?
     @Published private(set) var launchStatusesByWorkspaceID: [UUID: WorkspaceHubLaunchStatus] = [:]
     @Published private(set) var validationMessages: [WorkspaceHubValidationScope: String] = [:]
+    @Published private(set) var editLayoutMessage: String?
     @Published var createDraft = WorkspaceCreationDraft()
+    @Published var editDraft = WorkspaceCreationDraft()
 
     func showList() {
         mode = .list
@@ -65,6 +67,8 @@ final class WorkspaceHubState: ObservableObject {
         deleteConfirmationWorkspaceID = nil
         validationMessages.removeAll()
         createDraft = WorkspaceCreationDraft()
+        editDraft = WorkspaceCreationDraft()
+        editLayoutMessage = nil
     }
 
     func startCreating() {
@@ -74,6 +78,8 @@ final class WorkspaceHubState: ObservableObject {
         isCreateComposerPresented = true
         deleteConfirmationWorkspaceID = nil
         validationMessages.removeValue(forKey: .create)
+        editDraft = WorkspaceCreationDraft()
+        editLayoutMessage = nil
     }
 
     func cancelCreating() {
@@ -94,14 +100,35 @@ final class WorkspaceHubState: ObservableObject {
         validationMessages.removeValue(forKey: .create)
     }
 
-    func startEditing(workspaceID: UUID) {
+    func startEditing(workspace: Workspace) {
+        let workspaceID = workspace.id
         mode = .editing(workspaceID: workspaceID)
         selectedWorkspaceID = workspaceID
         expandedWorkspaceID = workspaceID
         isCreateComposerPresented = false
         deleteConfirmationWorkspaceID = nil
         createDraft = WorkspaceCreationDraft()
+        editDraft = WorkspaceCreationDraft(workspace: workspace)
+        editLayoutMessage = nil
         validationMessages.removeValue(forKey: .workspace(workspaceID))
+    }
+
+    func cancelEditing() {
+        mode = .list
+        selectedWorkspaceID = nil
+        expandedWorkspaceID = nil
+        editDraft = WorkspaceCreationDraft()
+        editLayoutMessage = nil
+        validationMessages.removeAll()
+    }
+
+    func finishEditing(savedWorkspaceID: UUID) {
+        mode = .list
+        selectedWorkspaceID = savedWorkspaceID
+        expandedWorkspaceID = savedWorkspaceID
+        editDraft = WorkspaceCreationDraft()
+        editLayoutMessage = nil
+        validationMessages.removeValue(forKey: .workspace(savedWorkspaceID))
     }
 
     func showLaunchDetails(workspaceID: UUID) {
@@ -111,6 +138,8 @@ final class WorkspaceHubState: ObservableObject {
         isCreateComposerPresented = false
         deleteConfirmationWorkspaceID = nil
         createDraft = WorkspaceCreationDraft()
+        editDraft = WorkspaceCreationDraft()
+        editLayoutMessage = nil
     }
 
     func selectWorkspace(_ workspaceID: UUID?) {
@@ -134,6 +163,40 @@ final class WorkspaceHubState: ObservableObject {
         deleteConfirmationWorkspaceID = nil
     }
 
+    func finishDeleting(workspaceID: UUID) {
+        if selectedWorkspaceID == workspaceID {
+            selectedWorkspaceID = nil
+        }
+
+        if expandedWorkspaceID == workspaceID {
+            expandedWorkspaceID = nil
+        }
+
+        if case .editing(let editingWorkspaceID) = mode, editingWorkspaceID == workspaceID {
+            mode = .list
+            editDraft = WorkspaceCreationDraft()
+            editLayoutMessage = nil
+        }
+
+        deleteConfirmationWorkspaceID = nil
+        validationMessages.removeValue(forKey: .workspace(workspaceID))
+    }
+
+    func finishDuplicating(savedWorkspaceID: UUID) {
+        mode = .list
+        selectedWorkspaceID = savedWorkspaceID
+        expandedWorkspaceID = savedWorkspaceID
+        deleteConfirmationWorkspaceID = nil
+        validationMessages.removeAll()
+    }
+
+    func finishReordering(workspaceID: UUID) {
+        selectedWorkspaceID = workspaceID
+        expandedWorkspaceID = workspaceID
+        deleteConfirmationWorkspaceID = nil
+        validationMessages.removeValue(forKey: .workspace(workspaceID))
+    }
+
     func setValidationMessage(_ message: String?, for scope: WorkspaceHubValidationScope) {
         if let message {
             validationMessages[scope] = message
@@ -146,12 +209,28 @@ final class WorkspaceHubState: ObservableObject {
         validationMessages[scope]
     }
 
+    func setEditLayoutMessage(_ message: String?) {
+        editLayoutMessage = message
+    }
+
     func updateLaunchProgress(_ snapshot: WorkspaceLaunchProgressSnapshot) {
         launchStatusesByWorkspaceID[snapshot.workspaceID] = .launching(snapshot)
     }
 
     func finishLaunch(_ result: WorkspaceLaunchResult) {
         launchStatusesByWorkspaceID[result.workspaceID] = .finished(result)
+    }
+
+    func clearSuccessfulLaunchStatus(workspaceID: UUID, resultID: UUID) {
+        guard
+            let status = launchStatusesByWorkspaceID[workspaceID],
+            status.phase == .succeeded,
+            status.result?.id == resultID
+        else {
+            return
+        }
+
+        launchStatusesByWorkspaceID.removeValue(forKey: workspaceID)
     }
 
     func clearLaunchStatus(workspaceID: UUID) {
@@ -167,5 +246,7 @@ final class WorkspaceHubState: ObservableObject {
         launchStatusesByWorkspaceID.removeAll()
         validationMessages.removeAll()
         createDraft = WorkspaceCreationDraft()
+        editDraft = WorkspaceCreationDraft()
+        editLayoutMessage = nil
     }
 }

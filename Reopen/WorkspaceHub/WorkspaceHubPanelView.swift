@@ -5,6 +5,12 @@ struct WorkspaceHubPanelView: View {
     @ObservedObject var state: WorkspaceHubState
     let onLaunchWorkspace: (UUID) -> Void
     let onSaveCreateWorkspace: () -> Void
+    let onSaveEditWorkspace: () -> Void
+    let onCaptureEditWindowLayout: () -> Void
+    let onDeleteWorkspace: (UUID) -> Void
+    let onDuplicateWorkspace: (UUID) -> Void
+    let onMoveWorkspace: (UUID, Int) -> Void
+    let onRepairLaunchIssue: (UUID, ActionLaunchResult) -> Void
     let onOpenSettings: () -> Void
     let onQuit: () -> Void
 
@@ -24,6 +30,9 @@ struct WorkspaceHubPanelView: View {
         }
         .frame(width: ReopenPanelMetrics.width, height: ReopenPanelMetrics.height)
         .reopenPanelBackground()
+        .onExitCommand {
+            state.cancelDeleteConfirmation()
+        }
     }
 
     private var header: some View {
@@ -83,14 +92,8 @@ struct WorkspaceHubPanelView: View {
     @ViewBuilder
     private var content: some View {
         switch state.mode {
-        case .list, .creating:
+        case .list, .creating, .editing:
             workspaceListContent
-        case .editing(let workspaceID):
-            modeContent(
-                title: "Edit \(workspaceTitle(for: workspaceID))",
-                systemImage: "pencil.circle",
-                validationMessage: state.validationMessage(for: .workspace(workspaceID))
-            )
         case .launchDetails(let workspaceID):
             let status = state.launchStatusesByWorkspaceID[workspaceID]
             modeContent(
@@ -105,18 +108,20 @@ struct WorkspaceHubPanelView: View {
     private var workspaceListContent: some View {
         ScrollView {
             LazyVStack(spacing: 10) {
-                WorkspaceCreateComposerView(
-                    draft: $state.createDraft,
-                    isExpanded: state.isCreateComposerPresented,
-                    validationMessage: state.validationMessage(for: .create),
-                    onExpand: {
-                        state.startCreating()
-                    },
-                    onSave: onSaveCreateWorkspace,
-                    onCancel: {
-                        state.cancelCreating()
-                    }
-                )
+                if showsCreateComposer {
+                    WorkspaceCreateComposerView(
+                        draft: $state.createDraft,
+                        isExpanded: state.isCreateComposerPresented,
+                        validationMessage: state.validationMessage(for: .create),
+                        onExpand: {
+                            state.startCreating()
+                        },
+                        onSave: onSaveCreateWorkspace,
+                        onCancel: {
+                            state.cancelCreating()
+                        }
+                    )
+                }
 
                 if appState.workspaces.isEmpty && !state.isCreateComposerPresented {
                     emptyState
@@ -154,23 +159,10 @@ struct WorkspaceHubPanelView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 8) {
-            Button(action: onOpenSettings) {
-                Label("Settings", systemImage: "gearshape")
-            }
-            .buttonStyle(.reopenQuiet)
-            .help("Settings")
-
-            Spacer()
-
-            Button(action: onQuit) {
-                Label("Quit", systemImage: "power")
-            }
-            .buttonStyle(.reopenQuiet)
-            .help("Quit Reopen")
-        }
-        .padding(.horizontal, ReopenPanelMetrics.horizontalPadding)
-        .padding(.vertical, 12)
+        WorkspaceHubFooterView(
+            onOpenSettings: onOpenSettings,
+            onQuit: onQuit
+        )
     }
 
     private func modeContent(
@@ -215,32 +207,74 @@ struct WorkspaceHubPanelView: View {
         .padding(ReopenPanelMetrics.horizontalPadding)
     }
 
+    @ViewBuilder
     private func workspaceCard(_ workspace: Workspace) -> some View {
         let summary = WorkspaceSummaryBuilder.summary(for: workspace)
+        let isEditing = isEditingWorkspace(workspace.id)
 
-        return WorkspaceCardView(
-            workspace: workspace,
-            summary: summary,
-            launchStatus: state.launchStatusesByWorkspaceID[workspace.id],
-            isSelected: workspace.id == state.selectedWorkspaceID,
-            isExpanded: workspace.id == state.expandedWorkspaceID,
-            isDeleteConfirmationPresented: workspace.id == state.deleteConfirmationWorkspaceID,
-            onLaunch: {
-                onLaunchWorkspace(workspace.id)
-            },
-            onEdit: {
-                state.startEditing(workspaceID: workspace.id)
-            },
-            onDelete: {
-                state.beginDeleteConfirmation(workspaceID: workspace.id)
-            },
-            onCancelDelete: {
-                state.cancelDeleteConfirmation()
-            },
-            onShowLaunchDetails: {
-                state.showLaunchDetails(workspaceID: workspace.id)
+        VStack(spacing: 8) {
+            WorkspaceCardView(
+                workspace: workspace,
+                summary: summary,
+                launchStatus: state.launchStatusesByWorkspaceID[workspace.id],
+                isSelected: workspace.id == state.selectedWorkspaceID,
+                isExpanded: workspace.id == state.expandedWorkspaceID,
+                isDeleteConfirmationPresented: workspace.id == state.deleteConfirmationWorkspaceID,
+                canMoveUp: canMoveWorkspace(workspace.id, offset: -1),
+                canMoveDown: canMoveWorkspace(workspace.id, offset: 1),
+                onLaunch: {
+                    onLaunchWorkspace(workspace.id)
+                },
+                onEdit: {
+                    state.startEditing(workspace: workspace)
+                },
+                onDelete: {
+                    if state.deleteConfirmationWorkspaceID == workspace.id {
+                        onDeleteWorkspace(workspace.id)
+                    } else {
+                        state.beginDeleteConfirmation(workspaceID: workspace.id)
+                    }
+                },
+                onDuplicate: {
+                    onDuplicateWorkspace(workspace.id)
+                },
+                onMoveUp: {
+                    onMoveWorkspace(workspace.id, -1)
+                },
+                onMoveDown: {
+                    onMoveWorkspace(workspace.id, 1)
+                },
+                onCancelDelete: {
+                    state.cancelDeleteConfirmation()
+                },
+                onShowLaunchDetails: {
+                    state.toggleExpandedCard(workspaceID: workspace.id)
+                },
+                onRepairLaunchIssue: { actionResult in
+                    onRepairLaunchIssue(workspace.id, actionResult)
+                }
+            )
+
+            if isEditing {
+                WorkspaceCreateComposerView(
+                    draft: $state.editDraft,
+                    title: "Edit Workspace",
+                    systemImage: "pencil.circle.fill",
+                    saveButtonTitle: "Save",
+                    showsCollapsedCard: false,
+                    showsWindowRestoreControls: true,
+                    layoutMessage: state.editLayoutMessage,
+                    isExpanded: true,
+                    validationMessage: state.validationMessage(for: .workspace(workspace.id)),
+                    onExpand: {},
+                    onSave: onSaveEditWorkspace,
+                    onCancel: {
+                        state.cancelEditing()
+                    },
+                    onCaptureWindowLayout: onCaptureEditWindowLayout
+                )
             }
-        )
+        }
     }
 
     private func workspaceTitle(for workspaceID: UUID) -> String {
@@ -276,5 +310,29 @@ struct WorkspaceHubPanelView: View {
         }
 
         return false
+    }
+
+    private var showsCreateComposer: Bool {
+        if case .editing = state.mode {
+            return false
+        }
+
+        return true
+    }
+
+    private func isEditingWorkspace(_ workspaceID: UUID) -> Bool {
+        if case .editing(let editingWorkspaceID) = state.mode {
+            return editingWorkspaceID == workspaceID
+        }
+
+        return false
+    }
+
+    private func canMoveWorkspace(_ workspaceID: UUID, offset: Int) -> Bool {
+        guard let currentIndex = appState.workspaces.firstIndex(where: { $0.id == workspaceID }) else {
+            return false
+        }
+
+        return appState.workspaces.indices.contains(currentIndex + offset)
     }
 }

@@ -111,7 +111,8 @@ final class AppWindowPresenter {
 
     func showOnboarding(
         workspaceManager: WorkspaceManager,
-        settingsManager: SettingsManager
+        settingsManager: SettingsManager,
+        onCreateWorkspace: (() -> Void)? = nil
     ) {
         if let existingController = onboardingController {
             existingController.showWindow(nil)
@@ -120,10 +121,14 @@ final class AppWindowPresenter {
 
         let controller = OnboardingWindowController(
             onCreateWorkspace: { [weak self] in
-                self?.showWorkspaceCreation(
-                    workspaceManager: workspaceManager,
-                    settings: settingsManager.settings
-                )
+                if let onCreateWorkspace {
+                    onCreateWorkspace()
+                } else {
+                    self?.showWorkspaceCreation(
+                        workspaceManager: workspaceManager,
+                        settings: settingsManager.settings
+                    )
+                }
             },
             onOpenSettings: { [weak self] in
                 self?.showSettings(

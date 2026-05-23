@@ -8,11 +8,17 @@ struct WorkspaceCardView: View {
     let isSelected: Bool
     let isExpanded: Bool
     let isDeleteConfirmationPresented: Bool
+    let canMoveUp: Bool
+    let canMoveDown: Bool
     let onLaunch: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
+    let onDuplicate: () -> Void
+    let onMoveUp: () -> Void
+    let onMoveDown: () -> Void
     let onCancelDelete: () -> Void
     let onShowLaunchDetails: () -> Void
+    let onRepairLaunchIssue: (ActionLaunchResult) -> Void
 
     @State private var isHovered = false
 
@@ -38,6 +44,10 @@ struct WorkspaceCardView: View {
 
             if isDeleteConfirmationPresented {
                 deleteConfirmation
+            }
+
+            if showsFailureDetails {
+                failureDetails
             }
         }
         .padding(14)
@@ -84,22 +94,33 @@ struct WorkspaceCardView: View {
     @ViewBuilder
     private var launchStatusView: some View {
         if let launchStatus {
-            HStack(spacing: 6) {
-                switch launchStatus.phase {
-                case .launching:
-                    ProgressView(value: launchStatus.progressFraction)
-                        .controlSize(.small)
-                        .frame(width: 34)
-                case .succeeded:
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                case .failed:
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    switch launchStatus.phase {
+                    case .launching:
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 14)
+                    case .succeeded:
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    case .failed:
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                    }
+
+                    Text(launchMessage(for: launchStatus))
+                        .lineLimit(1)
                 }
 
-                Text(launchStatus.message)
-                    .lineLimit(1)
+                if launchStatus.phase == .failed {
+                    Button(action: onShowLaunchDetails) {
+                        Text(isExpanded ? "Hide details" : "Show details")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.accentColor)
+                    .font(.caption)
+                }
             }
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -112,7 +133,7 @@ struct WorkspaceCardView: View {
 
     private var cardControls: some View {
         HStack(spacing: 4) {
-            if launchStatus != nil {
+            if launchStatus?.phase == .failed {
                 Button(action: onShowLaunchDetails) {
                     Image(systemName: "info.circle")
                 }
@@ -132,6 +153,35 @@ struct WorkspaceCardView: View {
             .buttonStyle(.reopenQuietIcon)
             .foregroundStyle(isDeleteConfirmationPresented ? .red : .primary)
             .help("Delete Workspace")
+
+            Menu {
+                Button {
+                    onDuplicate()
+                } label: {
+                    Label("Duplicate", systemImage: "plus.square.on.square")
+                }
+
+                Divider()
+
+                Button {
+                    onMoveUp()
+                } label: {
+                    Label("Move Up", systemImage: "arrow.up")
+                }
+                .disabled(!canMoveUp)
+
+                Button {
+                    onMoveDown()
+                } label: {
+                    Label("Move Down", systemImage: "arrow.down")
+                }
+                .disabled(!canMoveDown)
+            } label: {
+                Image(systemName: "ellipsis")
+            }
+            .menuStyle(.borderlessButton)
+            .frame(width: ReopenPanelMetrics.iconButtonSize, height: ReopenPanelMetrics.iconButtonSize)
+            .help("More Workspace Actions")
         }
     }
 
@@ -185,6 +235,13 @@ struct WorkspaceCardView: View {
 
             Spacer()
 
+            Button(action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+            .buttonStyle(.reopenQuiet)
+            .foregroundStyle(.red)
+            .help("Confirm Delete")
+
             Button(action: onCancelDelete) {
                 Image(systemName: "xmark")
             }
@@ -198,6 +255,82 @@ struct WorkspaceCardView: View {
                 .fill(Color.red.opacity(0.08))
         }
         .reopenSubtleBorder(opacity: 0.55)
+    }
+
+    private var showsFailureDetails: Bool {
+        isExpanded && failedLaunchResults.isEmpty == false
+    }
+
+    private var failedLaunchResults: [ActionLaunchResult] {
+        launchStatus?.result?.allResults.filter { $0.status == .failed } ?? []
+    }
+
+    private var failureDetails: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Needs attention")
+                .reopenSectionTitle()
+
+            ForEach(failedLaunchResults.prefix(5)) { actionResult in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "xmark.octagon.fill")
+                            .foregroundStyle(.red)
+                            .font(.caption)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(actionResult.title)
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .lineLimit(1)
+
+                            Text(actionResult.message)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+
+                        Spacer(minLength: 0)
+
+                        if canRepair(actionResult) {
+                            Button("Repair") {
+                                onRepairLaunchIssue(actionResult)
+                            }
+                            .buttonStyle(.reopenQuiet)
+                        }
+                    }
+
+                    if let guidance = ActionFailureGuidanceProvider.guidance(for: actionResult) {
+                        Text(guidance.howToFix)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .padding(.leading, 20)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background {
+                    RoundedRectangle(cornerRadius: ReopenPanelMetrics.cornerRadius, style: .continuous)
+                        .fill(Color.red.opacity(0.06))
+                }
+                .reopenSubtleBorder(opacity: 0.5)
+            }
+        }
+    }
+
+    private func launchMessage(for status: WorkspaceHubLaunchStatus) -> String {
+        switch status.phase {
+        case .launching:
+            return "Launching..."
+        case .succeeded, .failed:
+            return status.message
+        }
+    }
+
+    private func canRepair(_ actionResult: ActionLaunchResult) -> Bool {
+        actionResult.errorCode == "missing_file"
+            || actionResult.errorCode == "missing_folder"
+            || actionResult.errorCode == "permission_file_access_missing"
     }
 }
 

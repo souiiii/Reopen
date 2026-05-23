@@ -8,11 +8,18 @@ struct WorkspaceCreateComposerView: View {
 
     @Binding var draft: WorkspaceCreationDraft
 
+    var title = "New Workspace"
+    var systemImage = "plus.circle.fill"
+    var saveButtonTitle = "Save"
+    var showsCollapsedCard = true
+    var showsWindowRestoreControls = false
+    var layoutMessage: String?
     let isExpanded: Bool
     let validationMessage: String?
     let onExpand: () -> Void
     let onSave: () -> Void
     let onCancel: () -> Void
+    var onCaptureWindowLayout: (() -> Void)?
 
     @State private var activeInput: InlineActionInput?
     @State private var pendingURL = "https://"
@@ -28,14 +35,14 @@ struct WorkspaceCreateComposerView: View {
             if isExpanded {
                 expandedComposer
                     .transition(.opacity.combined(with: .move(edge: .top)))
-            } else {
+            } else if showsCollapsedCard {
                 Button(action: onExpand) {
                     HStack(spacing: 10) {
-                        Image(systemName: "plus.circle.fill")
+                        Image(systemName: systemImage)
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.accentColor)
 
-                        Text("New Workspace")
+                        Text(title)
                             .font(.headline)
                             .fontWeight(.semibold)
 
@@ -55,11 +62,11 @@ struct WorkspaceCreateComposerView: View {
     private var expandedComposer: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
-                Image(systemName: "plus.circle.fill")
+                Image(systemName: systemImage)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.accentColor)
 
-                Text("New Workspace")
+                Text(title)
                     .font(.headline)
                     .fontWeight(.semibold)
 
@@ -87,6 +94,10 @@ struct WorkspaceCreateComposerView: View {
                 actionList
             }
 
+            if showsWindowRestoreControls {
+                windowRestoreSection
+            }
+
             if let validationMessage {
                 Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
                     .font(.footnote)
@@ -103,7 +114,7 @@ struct WorkspaceCreateComposerView: View {
                 .buttonStyle(.reopenQuiet)
 
                 Button(action: onSave) {
-                    Label("Save", systemImage: "checkmark")
+                    Label(saveButtonTitle, systemImage: "checkmark")
                 }
                 .buttonStyle(.reopenPrimary)
             }
@@ -127,6 +138,45 @@ struct WorkspaceCreateComposerView: View {
                 case .terminal:
                     terminalInput
                 }
+            }
+        }
+        .padding(10)
+        .background {
+            RoundedRectangle(cornerRadius: ReopenPanelMetrics.cornerRadius, style: .continuous)
+                .fill(ReopenColor.quietFill)
+        }
+        .reopenSubtleBorder(opacity: 0.55)
+    }
+
+    private var windowRestoreSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Window Restore")
+                .reopenSectionTitle()
+
+            Toggle("Enable window restore", isOn: $draft.isWindowRestoreEnabled)
+                .font(.caption)
+
+            HStack(spacing: 8) {
+                Button {
+                    onCaptureWindowLayout?()
+                } label: {
+                    Label("Save Current Layout", systemImage: "rectangle.on.rectangle")
+                }
+                .buttonStyle(.reopenQuiet)
+                .disabled(!draft.isWindowRestoreEnabled || onCaptureWindowLayout == nil)
+
+                Text("Saved windows: \(draft.windowLayouts.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Spacer(minLength: 0)
+            }
+
+            if let layoutMessage {
+                Text(layoutMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
             }
         }
         .padding(10)
