@@ -9,10 +9,12 @@ final class WorkspaceHubPanelController: NSObject, NSPopoverDelegate {
 
     private let environment: AppEnvironment
     private let popover: NSPopover
+    private let state: WorkspaceHubState
 
     init(environment: AppEnvironment) {
         self.environment = environment
         self.popover = NSPopover()
+        self.state = WorkspaceHubState()
         super.init()
 
         configurePopover()
@@ -47,13 +49,17 @@ final class WorkspaceHubPanelController: NSObject, NSPopoverDelegate {
         popover.performClose(nil)
     }
 
+    func popoverDidClose(_ notification: Notification) {
+        state.resetForPanelClose()
+    }
+
     private func configurePopover() {
         popover.behavior = .transient
         popover.animates = true
         popover.contentSize = Metrics.contentSize
         popover.delegate = self
         popover.contentViewController = NSHostingController(
-            rootView: WorkspaceHubPanelView()
+            rootView: WorkspaceHubPanelView(state: state)
                 .environmentObject(environment.appState)
         )
     }
