@@ -11,6 +11,7 @@ final class ManageWorkspacesWindowController: NSWindowController, NSWindowDelega
         workspaceManager: WorkspaceManager,
         onEdit: @escaping (Workspace) -> Void,
         onExport: @escaping (Workspace, URL) -> Void,
+        onCreate: @escaping () -> Void,
         onClose: @escaping () -> Void
     ) {
         self.onClose = onClose
@@ -19,7 +20,8 @@ final class ManageWorkspacesWindowController: NSWindowController, NSWindowDelega
             appState: appState,
             workspaceManager: workspaceManager,
             onEdit: onEdit,
-            onExport: onExport
+            onExport: onExport,
+            onCreate: onCreate
         )
 
         let window = NSWindow(contentViewController: NSHostingController(rootView: view))

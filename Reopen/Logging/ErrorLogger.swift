@@ -36,7 +36,11 @@ final class ErrorLogger {
             localLogStore.append("Action succeeded: \(result.title)")
         case .failed:
             logger.error("Action failed: \(result.title, privacy: .public) - \(result.message, privacy: .public)")
-            localLogStore.append("Action failed: \(result.title) [\(result.errorCode ?? "unknown")]")
+            if result.errorCode?.hasPrefix("permission_") == true {
+                localLogStore.append("Permission missing: \(result.title) [\(result.errorCode ?? "unknown")]")
+            } else {
+                localLogStore.append("Action failed: \(result.title) [\(result.errorCode ?? "unknown")]")
+            }
         case .skipped:
             logger.info("Action skipped: \(result.title, privacy: .public)")
             if result.errorCode?.hasPrefix("permission_") == true {

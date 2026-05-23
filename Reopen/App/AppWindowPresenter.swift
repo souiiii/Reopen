@@ -76,6 +76,12 @@ final class AppWindowPresenter {
             onExport: { workspace, url in
                 settingsManager?.exportWorkspace(workspace, to: url)
             },
+            onCreate: { [weak self] in
+                self?.showWorkspaceCreation(
+                    workspaceManager: workspaceManager,
+                    settings: settings
+                )
+            },
             onClose: { [weak self] in
                 self?.workspaceManagementController = nil
             }

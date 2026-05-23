@@ -10,7 +10,7 @@ struct OnboardingView: View {
             HStack(spacing: 12) {
                 Image(systemName: "arrow.clockwise.circle.fill")
                     .font(.system(size: 36))
-                    .foregroundStyle(.accent)
+                    .foregroundColor(.accentColor)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Welcome to Reopen")

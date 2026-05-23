@@ -37,6 +37,7 @@ swiftc \
   "$ROOT_DIR/Reopen/Windows/WindowManager.swift" \
   "$ROOT_DIR/Reopen/Runner/WindowLayoutRestorer.swift" \
   "$ROOT_DIR/Reopen/Runner/WorkspaceRunner.swift" \
+  "$ROOT_DIR/Reopen/Licensing/LicenseManager.swift" \
   "$ROOT_DIR/Reopen/Settings/AppSettings.swift" \
   "$ROOT_DIR/Reopen/Settings/SettingsManager.swift" \
   "$ROOT_DIR/scripts/check-import-export.swift" \
