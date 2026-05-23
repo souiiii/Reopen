@@ -7,7 +7,7 @@ enum WorkspaceCreationError: Error, Equatable {
     var userFacingMessage: String {
         switch self {
         case .emptyName:
-            return "Workspace names cannot be empty."
+            return "Blank workspace names are named automatically."
         case .invalidAction(let message):
             return message
         }
@@ -74,9 +74,6 @@ struct WorkspaceCreationDraft: Equatable {
 
     func makeWorkspace() throws -> Workspace {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else {
-            throw WorkspaceCreationError.emptyName
-        }
 
         return Workspace(
             id: id ?? UUID(),

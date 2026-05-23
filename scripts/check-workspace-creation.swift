@@ -36,23 +36,26 @@ enum WorkspaceCreationChecks {
         )
         let manager = WorkspaceManager(workspaceStore: store)
 
-        try emptyNameIsRejected()
+        try blankNameIsAllowedAndAutoNamed(manager: manager, store: store)
         try invalidDraftActionIsRejected()
         try draftCreatesWorkspaceWithAllPhaseEightActionTypes(manager: manager, store: store)
 
         print("Workspace creation checks passed.")
     }
 
-    private static func emptyNameIsRejected() throws {
+    @MainActor
+    private static func blankNameIsAllowedAndAutoNamed(
+        manager: WorkspaceManager,
+        store: WorkspaceStore
+    ) throws {
         let draft = WorkspaceCreationDraft(name: "   ")
+        let workspace = try draft.makeWorkspace()
+        let savedWorkspace = try manager.createWorkspace(workspace)
 
-        do {
-            _ = try draft.makeWorkspace()
-            throw WorkspaceCreationCheckFailure.message("Empty workspace name should be rejected.")
-        } catch WorkspaceCreationError.emptyName {
-        } catch {
-            throw WorkspaceCreationCheckFailure.message("Expected emptyName, got \(error).")
-        }
+        try check(workspace.name.isEmpty, "Draft should allow blank names before manager auto-naming.")
+        try check(draft.validationMessage == nil, "Blank draft names should not show a validation message.")
+        try check(savedWorkspace.name == "Workspace 1", "Manager should auto-name blank draft workspaces.")
+        try check(store.loadWorkspaces().workspaces.first?.name == "Workspace 1", "Auto-named workspace should be saved.")
     }
 
     private static func invalidDraftActionIsRejected() throws {
@@ -109,7 +112,7 @@ enum WorkspaceCreationChecks {
 
         try check(savedWorkspace.name == "Coding", "Created workspace should preserve the draft name.")
         try check(savedWorkspace.actions.count == 6, "Created workspace should include all Phase 8 action types.")
-        try check(storedWorkspaces == [savedWorkspace], "Created workspace should save immediately.")
-        try check(manager.getAllWorkspaces() == [savedWorkspace], "Created workspace should appear in the manager immediately.")
+        try check(storedWorkspaces.contains(savedWorkspace), "Created workspace should save immediately.")
+        try check(manager.getWorkspace(id: savedWorkspace.id) == savedWorkspace, "Created workspace should appear in the manager immediately.")
     }
 }

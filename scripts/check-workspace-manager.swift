@@ -37,6 +37,7 @@ enum WorkspaceManagerChecks {
         try deleteRequiresConfirmation(manager: manager)
         try deleteWorkspaceSavesImmediately(manager: manager, store: store)
         try reorderWorkspacesSavesImmediately(manager: manager, store: store)
+        try blankWorkspaceNamesAreGenerated(manager: manager, store: store)
         try invalidWorkspaceDataIsRejected(manager: manager)
         try duplicateWorkspaceIDsAreRejected(manager: manager)
         try publishedChangesAreEmitted(store: store)
@@ -168,15 +169,30 @@ enum WorkspaceManagerChecks {
     }
 
     @MainActor
-    private static func invalidWorkspaceDataIsRejected(manager: WorkspaceManager) throws {
-        do {
-            _ = try manager.createWorkspace(name: "   ")
-            throw WorkspaceManagerCheckFailure.message("Empty workspace name should be rejected.")
-        } catch WorkspaceManagerError.invalidWorkspace(.emptyName) {
-        } catch {
-            throw WorkspaceManagerCheckFailure.message("Expected invalid empty name, got \(error).")
-        }
+    private static func blankWorkspaceNamesAreGenerated(
+        manager: WorkspaceManager,
+        store: WorkspaceStore
+    ) throws {
+        let first = try manager.createWorkspace(name: "   ")
+        let custom = try manager.createWorkspace(name: "Workspace 2")
+        let second = try manager.createWorkspace(name: "")
 
+        try check(first.name == "Workspace 1", "First blank workspace should be named Workspace 1.")
+        try check(custom.name == "Workspace 2", "Existing custom names should not be overwritten.")
+        try check(second.name == "Workspace 3", "Auto-generated names should skip existing Workspace N names.")
+        try check(
+            store.loadWorkspaces().workspaces.contains(where: { $0.id == second.id && $0.name == "Workspace 3" }),
+            "Auto-generated workspace names should be saved immediately."
+        )
+
+        var edited = second
+        edited.name = "   "
+        let updated = try manager.updateWorkspace(edited)
+        try check(updated.name == "Workspace 3", "Blank edited workspace names should be regenerated without collisions.")
+    }
+
+    @MainActor
+    private static func invalidWorkspaceDataIsRejected(manager: WorkspaceManager) throws {
         let invalidAction = Workspace(
             name: "Invalid Action",
             actions: [.openURL(OpenURLAction(url: "   "))]

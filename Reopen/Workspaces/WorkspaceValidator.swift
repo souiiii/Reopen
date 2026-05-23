@@ -11,7 +11,7 @@ enum WorkspaceValidationError: Error, Equatable {
     var userFacingMessage: String {
         switch self {
         case .emptyName:
-            return "Workspace names cannot be empty."
+            return "Blank workspace names are named automatically."
         case .duplicateWorkspaceID:
             return "Every workspace must have a unique ID."
         case .emptyActionField(_, let field):
@@ -28,10 +28,6 @@ enum WorkspaceValidationError: Error, Equatable {
 
 final class WorkspaceValidator {
     func validateWorkspace(_ workspace: Workspace) throws {
-        guard !workspace.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw WorkspaceValidationError.emptyName
-        }
-
         try validateActions(workspace.actions)
         try validateWindowLayouts(workspace.windowLayouts)
     }

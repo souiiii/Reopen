@@ -59,8 +59,56 @@ final class WorkspaceHubPanelController: NSObject, NSPopoverDelegate {
         popover.contentSize = Metrics.contentSize
         popover.delegate = self
         popover.contentViewController = NSHostingController(
-            rootView: WorkspaceHubPanelView(state: state)
+            rootView: WorkspaceHubPanelView(
+                state: state,
+                onLaunchWorkspace: { [weak self] workspaceID in
+                    self?.launchWorkspace(id: workspaceID)
+                },
+                onOpenSettings: { [weak self] in
+                    self?.openSettings()
+                },
+                onQuit: {
+                    NSApp.terminate(nil)
+                }
+            )
                 .environmentObject(environment.appState)
+        )
+    }
+
+    private func launchWorkspace(id workspaceID: UUID) {
+        guard let workspace = environment.workspaceManager.getWorkspace(id: workspaceID) else {
+            return
+        }
+
+        state.selectWorkspace(workspaceID)
+        state.setExpandedCard(workspaceID: workspaceID)
+        state.updateLaunchProgress(WorkspaceLaunchProgressSnapshot(
+            workspaceID: workspace.id,
+            workspaceName: workspace.name,
+            stage: .preparing,
+            message: "Launching..."
+        ))
+
+        environment.workspaceRunner.launchWorkspaceActionsAsync(
+            in: workspace,
+            progressHandler: { [weak self] snapshot in
+                Task { @MainActor in
+                    self?.state.updateLaunchProgress(snapshot)
+                }
+            },
+            completion: { [weak self] result in
+                Task { @MainActor in
+                    self?.state.finishLaunch(result)
+                }
+            }
+        )
+    }
+
+    private func openSettings() {
+        close()
+        environment.windowPresenter.showSettings(
+            settingsManager: environment.settingsManager,
+            workspaceManager: environment.workspaceManager
         )
     }
 }

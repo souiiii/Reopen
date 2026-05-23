@@ -15,6 +15,7 @@ swiftc \
   "$ROOT_DIR/Reopen/Storage/JSONBackupManager.swift" \
   "$ROOT_DIR/Reopen/Storage/MigrationManager.swift" \
   "$ROOT_DIR/Reopen/Storage/WorkspaceStore.swift" \
+  "$ROOT_DIR/Reopen/Workspaces/WorkspaceNameGenerator.swift" \
   "$ROOT_DIR/Reopen/Workspaces/WorkspaceValidator.swift" \
   "$ROOT_DIR/Reopen/Workspaces/WorkspaceManager.swift" \
   "$ROOT_DIR/scripts/check-workspace-manager.swift" \

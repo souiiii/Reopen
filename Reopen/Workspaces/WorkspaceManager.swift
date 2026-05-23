@@ -71,6 +71,7 @@ final class WorkspaceManager {
             throw WorkspaceManagerError.duplicateWorkspaceID(workspace.id)
         }
 
+        let workspace = workspace.withNormalizedName(existingWorkspaces: workspaces)
         var proposedWorkspaces = workspaces
         proposedWorkspaces.append(workspace)
         try validateAndPersist(proposedWorkspaces)
@@ -83,6 +84,9 @@ final class WorkspaceManager {
             throw WorkspaceManagerError.workspaceNotFound(workspace.id)
         }
 
+        let workspace = workspace.withNormalizedName(
+            existingWorkspaces: workspaces.filter { $0.id != workspace.id }
+        )
         var proposedWorkspaces = workspaces
         proposedWorkspaces[index] = workspace
         try validateAndPersist(proposedWorkspaces)
@@ -149,12 +153,17 @@ final class WorkspaceManager {
     }
 
     func replaceLoadedWorkspaces(_ loadedWorkspaces: [Workspace]) throws {
-        try validator.validateWorkspaceCollection(loadedWorkspaces)
-        publish(loadedWorkspaces)
+        let normalizedWorkspaces = normalizedNames(in: loadedWorkspaces)
+        try validator.validateWorkspaceCollection(normalizedWorkspaces)
+        publish(normalizedWorkspaces)
     }
 
     func addImportedWorkspaces(_ importedWorkspaces: [Workspace]) throws {
-        let proposedWorkspaces = workspaces + importedWorkspaces
+        let normalizedImportedWorkspaces = normalizedNames(
+            in: importedWorkspaces,
+            existingWorkspaces: workspaces
+        )
+        let proposedWorkspaces = workspaces + normalizedImportedWorkspaces
         try validateAndPersist(proposedWorkspaces)
         publish(proposedWorkspaces)
     }
@@ -164,8 +173,9 @@ final class WorkspaceManager {
             throw WorkspaceManagerError.replaceRequiresConfirmation
         }
 
-        try validateAndPersist(replacementWorkspaces)
-        publish(replacementWorkspaces)
+        let normalizedWorkspaces = normalizedNames(in: replacementWorkspaces)
+        try validateAndPersist(normalizedWorkspaces)
+        publish(normalizedWorkspaces)
     }
 
     private func validateAndPersist(_ proposedWorkspaces: [Workspace]) throws {
@@ -182,9 +192,47 @@ final class WorkspaceManager {
         workspaces = updatedWorkspaces
         onWorkspacesChanged?(updatedWorkspaces)
     }
+
+    private func normalizedNames(
+        in workspacesToNormalize: [Workspace],
+        existingWorkspaces: [Workspace] = []
+    ) -> [Workspace] {
+        var normalizedWorkspaces: [Workspace] = []
+
+        for workspace in workspacesToNormalize {
+            let existing = existingWorkspaces + normalizedWorkspaces
+            normalizedWorkspaces.append(workspace.withNormalizedName(existingWorkspaces: existing))
+        }
+
+        return normalizedWorkspaces
+    }
 }
 
 private extension Workspace {
+    func withNormalizedName(existingWorkspaces: [Workspace]) -> Workspace {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedName = trimmedName.isEmpty
+            ? WorkspaceNameGenerator.nextName(existingWorkspaces: existingWorkspaces)
+            : trimmedName
+
+        guard resolvedName != name else {
+            return self
+        }
+
+        return Workspace(
+            id: id,
+            name: resolvedName,
+            icon: icon,
+            color: color,
+            description: description,
+            actions: actions,
+            windowLayouts: windowLayouts,
+            isWindowRestoreEnabled: isWindowRestoreEnabled,
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+
     func duplicated() -> Workspace {
         Workspace(
             name: "\(name) Copy",

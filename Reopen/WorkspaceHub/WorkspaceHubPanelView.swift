@@ -3,6 +3,9 @@ import SwiftUI
 struct WorkspaceHubPanelView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject var state: WorkspaceHubState
+    let onLaunchWorkspace: (UUID) -> Void
+    let onOpenSettings: () -> Void
+    let onQuit: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,32 +15,67 @@ struct WorkspaceHubPanelView: View {
 
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            if showsFooter {
+                Divider()
+                footer
+            }
         }
         .frame(width: ReopenPanelMetrics.width, height: ReopenPanelMetrics.height)
         .reopenPanelBackground()
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "arrow.clockwise.circle.fill")
-                .font(.title2)
-                .foregroundColor(.accentColor)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.clockwise.circle.fill")
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
 
-            Text("Reopen")
-                .reopenPanelTitle()
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Reopen")
+                        .reopenPanelTitle()
 
-            Spacer()
+                    Text(workspaceCountText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
-            Button {
-                state.startCreating()
-            } label: {
-                Image(systemName: "plus")
+                Spacer()
+
+                Button {
+                    state.startCreating()
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .buttonStyle(.reopenQuietIcon)
+                .help("New Workspace")
             }
-            .buttonStyle(.reopenQuietIcon)
-            .help("New Workspace")
+
+            if let storageErrorMessage = appState.storageErrorMessage {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+
+                    Text(storageErrorMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background {
+                    RoundedRectangle(cornerRadius: ReopenPanelMetrics.cornerRadius, style: .continuous)
+                        .fill(Color.orange.opacity(0.08))
+                }
+                .reopenSubtleBorder(opacity: 0.55)
+            }
         }
         .padding(.horizontal, ReopenPanelMetrics.horizontalPadding)
-        .padding(.vertical, ReopenPanelMetrics.verticalPadding)
+        .padding(.top, ReopenPanelMetrics.verticalPadding)
+        .padding(.bottom, 12)
         .accessibilityLabel("Reopen")
     }
 
@@ -73,13 +111,22 @@ struct WorkspaceHubPanelView: View {
         VStack(alignment: .leading, spacing: 0) {
             if appState.workspaces.isEmpty {
                 VStack(spacing: 12) {
-                    Image(systemName: "square.grid.2x2")
-                        .font(.system(size: 34))
-                        .foregroundStyle(.secondary)
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color.accentColor.opacity(0.12))
+                            .frame(width: 58, height: 58)
+
+                        Image(systemName: "square.grid.2x2")
+                            .font(.system(size: 30, weight: .semibold))
+                            .foregroundColor(.accentColor)
+                    }
+
                     Text("No workspaces yet")
                         .font(.headline)
+
                     Text("Create a workspace to keep the apps, files, links, and commands you reopen often.")
                         .reopenBodySecondary()
+
                     Button {
                         state.startCreating()
                     } label: {
@@ -90,19 +137,36 @@ struct WorkspaceHubPanelView: View {
                 .reopenEmptyStateStyle()
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 8) {
-                        Text("Workspaces")
-                            .reopenSectionTitle()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
+                    LazyVStack(spacing: 10) {
                         ForEach(appState.workspaces) { workspace in
-                            workspaceNavigationRow(workspace)
+                            workspaceCard(workspace)
                         }
                     }
-                    .padding(14)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
                 }
             }
         }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 8) {
+            Button(action: onOpenSettings) {
+                Label("Settings", systemImage: "gearshape")
+            }
+            .buttonStyle(.reopenQuiet)
+            .help("Settings")
+
+            Spacer()
+
+            Button(action: onQuit) {
+                Label("Quit", systemImage: "power")
+            }
+            .buttonStyle(.reopenQuiet)
+            .help("Quit Reopen")
+        }
+        .padding(.horizontal, ReopenPanelMetrics.horizontalPadding)
+        .padding(.vertical, 12)
     }
 
     private func modeContent(
@@ -147,47 +211,54 @@ struct WorkspaceHubPanelView: View {
         .padding(ReopenPanelMetrics.horizontalPadding)
     }
 
-    private func workspaceNavigationRow(_ workspace: Workspace) -> some View {
-        HStack(spacing: 10) {
-            Button {
-                state.selectWorkspace(workspace.id)
-                state.toggleExpandedCard(workspaceID: workspace.id)
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: workspace.icon ?? "square.grid.2x2")
-                        .foregroundStyle(.secondary)
-                        .frame(width: 22)
+    private func workspaceCard(_ workspace: Workspace) -> some View {
+        let summary = WorkspaceSummaryBuilder.summary(for: workspace)
 
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(workspace.name)
-                            .fontWeight(.medium)
-                        if let status = state.launchStatusesByWorkspaceID[workspace.id] {
-                            Text(status.message)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Spacer()
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            Button {
+        return WorkspaceCardView(
+            workspace: workspace,
+            summary: summary,
+            launchStatus: state.launchStatusesByWorkspaceID[workspace.id],
+            isSelected: workspace.id == state.selectedWorkspaceID,
+            isExpanded: workspace.id == state.expandedWorkspaceID,
+            isDeleteConfirmationPresented: workspace.id == state.deleteConfirmationWorkspaceID,
+            onLaunch: {
+                onLaunchWorkspace(workspace.id)
+            },
+            onEdit: {
                 state.startEditing(workspaceID: workspace.id)
-            } label: {
-                Image(systemName: "pencil")
+            },
+            onDelete: {
+                state.beginDeleteConfirmation(workspaceID: workspace.id)
+            },
+            onCancelDelete: {
+                state.cancelDeleteConfirmation()
+            },
+            onShowLaunchDetails: {
+                state.showLaunchDetails(workspaceID: workspace.id)
             }
-            .buttonStyle(.reopenQuietIcon)
-            .help("Edit Workspace")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .reopenCard(isSelected: workspace.id == state.selectedWorkspaceID)
+        )
     }
 
     private func workspaceTitle(for workspaceID: UUID) -> String {
         appState.workspaces.first(where: { $0.id == workspaceID })?.name ?? "Workspace"
+    }
+
+    private var workspaceCountText: String {
+        switch appState.workspaces.count {
+        case 0:
+            return "No workspaces"
+        case 1:
+            return "1 workspace"
+        default:
+            return "\(appState.workspaces.count) workspaces"
+        }
+    }
+
+    private var showsFooter: Bool {
+        if case .list = state.mode {
+            return true
+        }
+
+        return false
     }
 }

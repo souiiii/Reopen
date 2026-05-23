@@ -11,6 +11,7 @@ swiftc \
   "$ROOT_DIR/Reopen/Workspaces/Models/WorkspaceAction.swift" \
   "$ROOT_DIR/Reopen/Workspaces/Models/WindowLayout.swift" \
   "$ROOT_DIR/Reopen/Workspaces/Models/LaunchResult.swift" \
+  "$ROOT_DIR/Reopen/Workspaces/WorkspaceNameGenerator.swift" \
   "$ROOT_DIR/Reopen/Workspaces/WorkspaceValidator.swift" \
   "$ROOT_DIR/Reopen/Workspaces/WorkspaceManager.swift" \
   "$ROOT_DIR/Reopen/Storage/StorageError.swift" \

@@ -62,9 +62,9 @@ struct WorkspaceEditorView: View {
 
             Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 12) {
                 GridRow {
-                    Text("Name")
+                    Text("Name (optional)")
                         .foregroundStyle(.secondary)
-                    TextField("Coding", text: $draft.name)
+                    TextField("Workspace 1", text: $draft.name)
                         .textFieldStyle(.roundedBorder)
                 }
 
