@@ -7,10 +7,11 @@ final class AppWindowPresenter {
     private var workspaceCreationController: WorkspaceEditorWindowController?
     private var workspaceEditingControllers: [UUID: WorkspaceEditorWindowController] = [:]
     private var workspaceManagementController: ManageWorkspacesWindowController?
+    private var settingsController: SettingsWindowController?
     private var launchProgressControllers: [UUID: LaunchProgressWindowController] = [:]
     private var launchResultControllers: [UUID: LaunchResultWindowController] = [:]
 
-    func showWorkspaceCreation(workspaceManager: WorkspaceManager) {
+    func showWorkspaceCreation(workspaceManager: WorkspaceManager, settings: AppSettings = AppSettings()) {
         if let existingController = workspaceCreationController {
             existingController.showWindow(nil)
             return
@@ -19,6 +20,7 @@ final class AppWindowPresenter {
         let controller = WorkspaceEditorWindowController(
             mode: .create,
             workspaceManager: workspaceManager,
+            settings: settings,
             onClose: { [weak self] in
                 self?.workspaceCreationController = nil
             }
@@ -27,7 +29,11 @@ final class AppWindowPresenter {
         controller.showWindow(nil)
     }
 
-    func showWorkspaceEditing(workspace: Workspace, workspaceManager: WorkspaceManager) {
+    func showWorkspaceEditing(
+        workspace: Workspace,
+        workspaceManager: WorkspaceManager,
+        settings: AppSettings = AppSettings()
+    ) {
         if let existingController = workspaceEditingControllers[workspace.id] {
             existingController.showWindow(nil)
             return
@@ -36,6 +42,7 @@ final class AppWindowPresenter {
         let controller = WorkspaceEditorWindowController(
             mode: .edit(workspace),
             workspaceManager: workspaceManager,
+            settings: settings,
             onClose: { [weak self] in
                 self?.workspaceEditingControllers[workspace.id] = nil
             }
@@ -44,7 +51,11 @@ final class AppWindowPresenter {
         controller.showWindow(nil)
     }
 
-    func showWorkspaceManagement(appState: AppState, workspaceManager: WorkspaceManager) {
+    func showWorkspaceManagement(
+        appState: AppState,
+        workspaceManager: WorkspaceManager,
+        settings: AppSettings = AppSettings()
+    ) {
         if let existingController = workspaceManagementController {
             existingController.showWindow(nil)
             return
@@ -54,7 +65,11 @@ final class AppWindowPresenter {
             appState: appState,
             workspaceManager: workspaceManager,
             onEdit: { [weak self] workspace in
-                self?.showWorkspaceEditing(workspace: workspace, workspaceManager: workspaceManager)
+                self?.showWorkspaceEditing(
+                    workspace: workspace,
+                    workspaceManager: workspaceManager,
+                    settings: settings
+                )
             },
             onClose: { [weak self] in
                 self?.workspaceManagementController = nil
@@ -62,6 +77,25 @@ final class AppWindowPresenter {
         )
         workspaceManagementController = controller
         controller.showWindow(nil)
+    }
+
+    func showSettings(settingsManager: SettingsManager, workspaceManager: WorkspaceManager) {
+        if let existingController = settingsController {
+            existingController.showWindow(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let controller = SettingsWindowController(
+            settingsManager: settingsManager,
+            workspaceManager: workspaceManager,
+            onClose: { [weak self] in
+                self?.settingsController = nil
+            }
+        )
+        settingsController = controller
+        controller.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     func showLaunchResult(

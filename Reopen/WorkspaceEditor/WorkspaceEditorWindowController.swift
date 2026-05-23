@@ -9,6 +9,7 @@ final class WorkspaceEditorWindowController: NSWindowController, NSWindowDelegat
     init(
         mode: WorkspaceEditorMode,
         workspaceManager: WorkspaceManager,
+        settings: AppSettings = AppSettings(),
         onClose: @escaping () -> Void
     ) {
         self.onClose = onClose
@@ -17,7 +18,8 @@ final class WorkspaceEditorWindowController: NSWindowController, NSWindowDelegat
         let view = WorkspaceEditorView(
             title: mode.title,
             saveButtonTitle: mode.saveButtonTitle,
-            draft: mode.draft,
+            draft: mode.draft(settings: settings),
+            settings: settings,
             onSave: { draft in
                 let workspace = try draft.makeWorkspace()
                 switch mode {
@@ -89,10 +91,12 @@ enum WorkspaceEditorMode {
         }
     }
 
-    var draft: WorkspaceCreationDraft {
+    func draft(settings: AppSettings = AppSettings()) -> WorkspaceCreationDraft {
         switch self {
         case .create:
-            return WorkspaceCreationDraft()
+            var draft = WorkspaceCreationDraft()
+            draft.isWindowRestoreEnabled = settings.enableWindowRestore
+            return draft
         case .edit(let workspace):
             return WorkspaceCreationDraft(workspace: workspace)
         }

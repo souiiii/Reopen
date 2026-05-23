@@ -324,8 +324,12 @@ struct WorkspaceActionDraft: Identifiable, Equatable {
         WorkspaceActionDraft(kind: .openURL, url: "https://")
     }
 
-    static func terminalCommand() -> WorkspaceActionDraft {
-        WorkspaceActionDraft(kind: .terminalCommand, name: "Command")
+    static func terminalCommand(requiresConfirmation: Bool = true) -> WorkspaceActionDraft {
+        WorkspaceActionDraft(
+            kind: .terminalCommand,
+            name: "Command",
+            requiresConfirmation: requiresConfirmation
+        )
     }
 
     static func vsCodeProject(path: String, editor: String = "vscode") -> WorkspaceActionDraft {

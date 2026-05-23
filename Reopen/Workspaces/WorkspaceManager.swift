@@ -5,6 +5,7 @@ enum WorkspaceManagerError: Error, Equatable {
     case workspaceNotFound(UUID)
     case duplicateWorkspaceID(UUID)
     case deleteRequiresConfirmation(UUID)
+    case replaceRequiresConfirmation
     case reorderIDMismatch
 
     var userFacingMessage: String {
@@ -17,6 +18,8 @@ enum WorkspaceManagerError: Error, Equatable {
             return "Every workspace must have a unique ID."
         case .deleteRequiresConfirmation:
             return "Deleting a workspace requires confirmation."
+        case .replaceRequiresConfirmation:
+            return "Replacing workspace data requires confirmation."
         case .reorderIDMismatch:
             return "Workspace order could not be saved because the list changed."
         }
@@ -148,6 +151,15 @@ final class WorkspaceManager {
     func replaceLoadedWorkspaces(_ loadedWorkspaces: [Workspace]) throws {
         try validator.validateWorkspaceCollection(loadedWorkspaces)
         publish(loadedWorkspaces)
+    }
+
+    func replaceWorkspaces(_ replacementWorkspaces: [Workspace], confirmed: Bool) throws {
+        guard confirmed else {
+            throw WorkspaceManagerError.replaceRequiresConfirmation
+        }
+
+        try validateAndPersist(replacementWorkspaces)
+        publish(replacementWorkspaces)
     }
 
     private func validateAndPersist(_ proposedWorkspaces: [Workspace]) throws {

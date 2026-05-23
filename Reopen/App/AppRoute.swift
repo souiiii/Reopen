@@ -26,7 +26,7 @@ enum AppRoute: Hashable {
         case .manageWorkspaces:
             return "Workspace management will be implemented in Phase 7 and Phase 9."
         case .settings:
-            return "Settings will be implemented in Phase 18."
+            return "Settings are available from the menu bar."
         case .launchWorkspace:
             return "Workspace launch progress and results are available from the menu bar."
         }

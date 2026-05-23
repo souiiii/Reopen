@@ -7,6 +7,7 @@ enum StorageError: Error, Equatable {
     case writeFailed(path: String, reason: String)
     case backupFailed(path: String, reason: String)
     case corruptedWorkspaceData(path: String, reason: String)
+    case corruptedSettingsData(path: String, reason: String)
     case migrationFailed(reason: String)
     case encodedDataValidationFailed(reason: String)
 
@@ -24,6 +25,8 @@ enum StorageError: Error, Equatable {
             return "Storage error: Reopen could not back up existing workspace data."
         case .corruptedWorkspaceData:
             return "Storage error: Saved workspace data is corrupted."
+        case .corruptedSettingsData:
+            return "Storage error: Saved settings are corrupted."
         case .migrationFailed:
             return "Storage error: Saved workspace data could not be migrated."
         case .encodedDataValidationFailed:

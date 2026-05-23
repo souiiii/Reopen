@@ -141,18 +141,25 @@ final class MenuBarController: NSObject {
     }
 
     @objc private func createWorkspace() {
-        environment.windowPresenter.showWorkspaceCreation(workspaceManager: environment.workspaceManager)
+        environment.windowPresenter.showWorkspaceCreation(
+            workspaceManager: environment.workspaceManager,
+            settings: environment.settingsManager.settings
+        )
     }
 
     @objc private func manageWorkspaces() {
         environment.windowPresenter.showWorkspaceManagement(
             appState: environment.appState,
-            workspaceManager: environment.workspaceManager
+            workspaceManager: environment.workspaceManager,
+            settings: environment.settingsManager.settings
         )
     }
 
     @objc private func openSettings() {
-        environment.windowPresenter.show(.settings)
+        environment.windowPresenter.showSettings(
+            settingsManager: environment.settingsManager,
+            workspaceManager: environment.workspaceManager
+        )
     }
 
     @objc private func quit() {

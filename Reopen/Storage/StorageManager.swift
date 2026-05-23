@@ -8,6 +8,10 @@ final class StorageManager {
         applicationSupportDirectory.appendingPathComponent("workspaces.json", isDirectory: false)
     }
 
+    var settingsFileURL: URL {
+        applicationSupportDirectory.appendingPathComponent("settings.json", isDirectory: false)
+    }
+
     var backupsDirectoryURL: URL {
         applicationSupportDirectory.appendingPathComponent("backups", isDirectory: true)
     }

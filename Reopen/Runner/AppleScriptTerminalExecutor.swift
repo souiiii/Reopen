@@ -1,5 +1,19 @@
 import Foundation
 
+enum PreferredTerminalApp: String, Codable, CaseIterable, Equatable, Sendable {
+    case terminal
+    case iTerm
+
+    var displayName: String {
+        switch self {
+        case .terminal:
+            return "Terminal"
+        case .iTerm:
+            return "iTerm"
+        }
+    }
+}
+
 struct TerminalExecutionResult: Equatable {
     var succeeded: Bool
     var errorMessage: String?
@@ -21,9 +35,13 @@ final class AppleScriptTerminalExecutor {
         self.executeAppleScript = executeAppleScript
     }
 
-    func run(command: String, workingDirectory: String) -> TerminalExecutionResult {
+    func run(
+        command: String,
+        workingDirectory: String,
+        terminalApp: PreferredTerminalApp = .terminal
+    ) -> TerminalExecutionResult {
         let shellCommand = Self.shellCommand(command: command, workingDirectory: workingDirectory)
-        let appleScript = Self.appleScript(for: shellCommand)
+        let appleScript = Self.appleScript(for: shellCommand, terminalApp: terminalApp)
         return executeAppleScript(appleScript)
     }
 
@@ -31,13 +49,29 @@ final class AppleScriptTerminalExecutor {
         "cd \(shellQuoted(workingDirectory)) && \(command)"
     }
 
-    static func appleScript(for shellCommand: String) -> String {
-        """
-        tell application "Terminal"
-            activate
-            do script "\(appleScriptEscaped(shellCommand))"
-        end tell
-        """
+    static func appleScript(
+        for shellCommand: String,
+        terminalApp: PreferredTerminalApp = .terminal
+    ) -> String {
+        switch terminalApp {
+        case .terminal:
+            return """
+            tell application "Terminal"
+                activate
+                do script "\(appleScriptEscaped(shellCommand))"
+            end tell
+            """
+        case .iTerm:
+            return """
+            tell application "iTerm"
+                activate
+                set newWindow to (create window with default profile)
+                tell current session of newWindow
+                    write text "\(appleScriptEscaped(shellCommand))"
+                end tell
+            end tell
+            """
+        }
     }
 
     static func shellQuoted(_ value: String) -> String {

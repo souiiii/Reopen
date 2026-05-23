@@ -1,5 +1,19 @@
 import Foundation
 
+enum PreferredCodeEditor: String, Codable, CaseIterable, Equatable, Sendable {
+    case visualStudioCode = "vscode"
+    case visualStudioCodeInsiders = "vscode-insiders"
+
+    var displayName: String {
+        switch self {
+        case .visualStudioCode:
+            return "Visual Studio Code"
+        case .visualStudioCodeInsiders:
+            return "VS Code Insiders"
+        }
+    }
+}
+
 struct ProcessLaunchResult: Equatable {
     var succeeded: Bool
     var exitCode: Int32
@@ -14,22 +28,29 @@ struct ProcessLaunchResult: Equatable {
 
 final class VSCodeLauncher {
     typealias RunProcess = (String, [String]) -> ProcessLaunchResult
+    typealias PreferredEditorProvider = @Sendable () -> PreferredCodeEditor
 
     private let fileManager: FileManager
     private let cliCandidatePaths: [String]
     private let appCandidatePaths: [String]
     private let runProcess: RunProcess
+    private let preferredEditorProvider: PreferredEditorProvider
+    private let usesDefaultCandidates: Bool
 
     init(
         fileManager: FileManager = .default,
         cliCandidatePaths: [String] = VSCodeLauncher.defaultCLICandidatePaths(),
         appCandidatePaths: [String] = VSCodeLauncher.defaultAppCandidatePaths(),
-        runProcess: @escaping RunProcess = VSCodeLauncher.runProcess
+        runProcess: @escaping RunProcess = VSCodeLauncher.runProcess,
+        preferredEditorProvider: @escaping PreferredEditorProvider = { .visualStudioCode }
     ) {
         self.fileManager = fileManager
         self.cliCandidatePaths = cliCandidatePaths
         self.appCandidatePaths = appCandidatePaths
         self.runProcess = runProcess
+        self.preferredEditorProvider = preferredEditorProvider
+        self.usesDefaultCandidates = cliCandidatePaths == Self.defaultCLICandidatePaths()
+            && appCandidatePaths == Self.defaultAppCandidatePaths()
     }
 
     func open(_ action: OpenVSCodeProjectAction) -> ActionLaunchResult {
@@ -56,8 +77,9 @@ final class VSCodeLauncher {
             )
         }
 
-        let cliPath = firstExecutablePath(in: cliCandidatePaths)
-        let appPath = firstApplicationPath(in: appCandidatePaths)
+        let editor = editor(for: action)
+        let cliPath = firstExecutablePath(in: cliCandidatePaths(for: editor))
+        let appPath = firstApplicationPath(in: appCandidatePaths(for: editor))
 
         if let cliPath {
             let cliResult = runProcess(cliPath, [projectPath])
@@ -67,7 +89,7 @@ final class VSCodeLauncher {
                     actionType: WorkspaceActionType.openVSCodeProject.rawValue,
                     title: title,
                     status: .succeeded,
-                    message: "Opened \(title) in VS Code with the code command."
+                    message: "Opened \(title) in \(editor.displayName) with the code command."
                 )
             }
 
@@ -77,7 +99,7 @@ final class VSCodeLauncher {
                     title: title,
                     appPath: appPath,
                     projectPath: projectPath,
-                    fallbackMessage: "The code command failed, so Reopen opened \(title) with the VS Code app."
+                    fallbackMessage: "The code command failed, so Reopen opened \(title) with \(editor.displayName)."
                 )
             }
 
@@ -93,7 +115,7 @@ final class VSCodeLauncher {
             return failure(
                 action: action,
                 title: title,
-                message: "Visual Studio Code could not be found. Install VS Code or enable the code command.",
+                message: "\(editor.displayName) could not be found. Install it or enable the code command.",
                 errorCode: "missing_vscode"
             )
         }
@@ -105,6 +127,34 @@ final class VSCodeLauncher {
             projectPath: projectPath,
             fallbackMessage: nil
         )
+    }
+
+    private func editor(for action: OpenVSCodeProjectAction) -> PreferredCodeEditor {
+        guard let actionEditor = PreferredCodeEditor(rawValue: action.editor) else {
+            return preferredEditorProvider()
+        }
+
+        if actionEditor == .visualStudioCode {
+            return preferredEditorProvider()
+        }
+
+        return actionEditor
+    }
+
+    private func cliCandidatePaths(for editor: PreferredCodeEditor) -> [String] {
+        guard usesDefaultCandidates else {
+            return cliCandidatePaths
+        }
+
+        return Self.defaultCLICandidatePaths(for: editor)
+    }
+
+    private func appCandidatePaths(for editor: PreferredCodeEditor) -> [String] {
+        guard usesDefaultCandidates else {
+            return appCandidatePaths
+        }
+
+        return Self.defaultAppCandidatePaths(for: editor)
     }
 
     private func openWithApp(
@@ -129,7 +179,7 @@ final class VSCodeLauncher {
             actionType: WorkspaceActionType.openVSCodeProject.rawValue,
             title: title,
             status: .succeeded,
-            message: fallbackMessage ?? "Opened \(title) in VS Code."
+            message: fallbackMessage ?? "Opened \(title)."
         )
     }
 
@@ -165,24 +215,49 @@ final class VSCodeLauncher {
     }
 
     private static func defaultCLICandidatePaths() -> [String] {
+        defaultCLICandidatePaths(for: .visualStudioCode)
+    }
+
+    private static func defaultCLICandidatePaths(for editor: PreferredCodeEditor) -> [String] {
         let home = NSHomeDirectory()
-        return [
-            "/usr/local/bin/code",
-            "/opt/homebrew/bin/code",
-            "/usr/bin/code",
-            "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code",
-            "\(home)/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
-        ]
+        switch editor {
+        case .visualStudioCode:
+            return [
+                "/usr/local/bin/code",
+                "/opt/homebrew/bin/code",
+                "/usr/bin/code",
+                "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code",
+                "\(home)/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code"
+            ]
+        case .visualStudioCodeInsiders:
+            return [
+                "/usr/local/bin/code-insiders",
+                "/opt/homebrew/bin/code-insiders",
+                "/usr/bin/code-insiders",
+                "/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin/code",
+                "\(home)/Applications/Visual Studio Code - Insiders.app/Contents/Resources/app/bin/code"
+            ]
+        }
     }
 
     private static func defaultAppCandidatePaths() -> [String] {
+        defaultAppCandidatePaths(for: .visualStudioCode)
+    }
+
+    private static func defaultAppCandidatePaths(for editor: PreferredCodeEditor) -> [String] {
         let home = NSHomeDirectory()
-        return [
-            "/Applications/Visual Studio Code.app",
-            "\(home)/Applications/Visual Studio Code.app",
-            "/Applications/Visual Studio Code - Insiders.app",
-            "\(home)/Applications/Visual Studio Code - Insiders.app"
-        ]
+        switch editor {
+        case .visualStudioCode:
+            return [
+                "/Applications/Visual Studio Code.app",
+                "\(home)/Applications/Visual Studio Code.app"
+            ]
+        case .visualStudioCodeInsiders:
+            return [
+                "/Applications/Visual Studio Code - Insiders.app",
+                "\(home)/Applications/Visual Studio Code - Insiders.app"
+            ]
+        }
     }
 
     private static func runProcess(executablePath: String, arguments: [String]) -> ProcessLaunchResult {

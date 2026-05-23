@@ -12,6 +12,9 @@ final class WorkspaceRunner: @unchecked Sendable {
     typealias ProgressHandler = @Sendable (WorkspaceLaunchProgressSnapshot) -> Void
     typealias CompletionHandler = @Sendable (WorkspaceLaunchResult) -> Void
     typealias SleepHandler = @Sendable (TimeInterval) -> Void
+    typealias LaunchDelayProvider = @Sendable () -> TimeInterval?
+    typealias TerminalConfirmationPreferenceProvider = @Sendable () -> Bool
+    typealias WindowRestorePreferenceProvider = @Sendable () -> Bool
 
     private let workspaceValidator: WorkspaceValidator
     private let permissionChecker: WorkspacePermissionChecker
@@ -24,6 +27,9 @@ final class WorkspaceRunner: @unchecked Sendable {
     private let errorLogger: ErrorLogger
     private let configuration: WorkspaceRunnerConfiguration
     private let sleep: SleepHandler
+    private let launchDelayProvider: LaunchDelayProvider
+    private let terminalConfirmationPreferenceProvider: TerminalConfirmationPreferenceProvider
+    private let windowRestorePreferenceProvider: WindowRestorePreferenceProvider
 
     init(
         workspaceValidator: WorkspaceValidator = WorkspaceValidator(),
@@ -36,6 +42,9 @@ final class WorkspaceRunner: @unchecked Sendable {
         windowLayoutRestorer: WindowLayoutRestorer = WindowLayoutRestorer(),
         errorLogger: ErrorLogger,
         configuration: WorkspaceRunnerConfiguration = .live,
+        launchDelayProvider: @escaping LaunchDelayProvider = { nil },
+        terminalConfirmationPreferenceProvider: @escaping TerminalConfirmationPreferenceProvider = { false },
+        windowRestorePreferenceProvider: @escaping WindowRestorePreferenceProvider = { true },
         sleep: @escaping SleepHandler = { interval in
             guard interval > 0 else {
                 return
@@ -55,6 +64,9 @@ final class WorkspaceRunner: @unchecked Sendable {
         self.errorLogger = errorLogger
         self.configuration = configuration
         self.sleep = sleep
+        self.launchDelayProvider = launchDelayProvider
+        self.terminalConfirmationPreferenceProvider = terminalConfirmationPreferenceProvider
+        self.windowRestorePreferenceProvider = windowRestorePreferenceProvider
     }
 
     func launchWorkspaceActions(
@@ -70,7 +82,8 @@ final class WorkspaceRunner: @unchecked Sendable {
         )
 
         let totalActionCount = launchableActionCount(in: workspace)
-        let layoutUnitCount = workspace.isWindowRestoreEnabled ? workspace.windowLayouts.count : 0
+        let shouldRestoreWindows = windowRestorePreferenceProvider() && workspace.isWindowRestoreEnabled
+        let layoutUnitCount = shouldRestoreWindows ? workspace.windowLayouts.count : 0
         let totalUnitCount = max(totalActionCount + layoutUnitCount, 1)
         var completedUnits = 0
 
@@ -223,7 +236,7 @@ final class WorkspaceRunner: @unchecked Sendable {
         }
 
         for terminalAction in terminalActions(in: workspace) where !permissionReport.blockedActionIDs.contains(terminalAction.id) {
-            append(terminalManager.run(terminalAction), to: &result)
+            append(terminalManager.run(effectiveTerminalAction(terminalAction)), to: &result)
             completedUnits += 1
             publishAndDelayIfNeeded(
                 workspace: workspace,
@@ -237,7 +250,7 @@ final class WorkspaceRunner: @unchecked Sendable {
             )
         }
 
-        if totalActionCount == 0 && workspace.windowLayouts.isEmpty {
+        if totalActionCount == 0 && layoutUnitCount == 0 {
             let skippedResult = ActionLaunchResult(
                 actionType: "workspace",
                 title: "Workspace Launch",
@@ -247,7 +260,7 @@ final class WorkspaceRunner: @unchecked Sendable {
             append(skippedResult, to: &result)
         }
 
-        let restorableLayouts = workspace.isWindowRestoreEnabled ? workspace.windowLayouts.filter { layout in
+        let restorableLayouts = shouldRestoreWindows ? workspace.windowLayouts.filter { layout in
             !permissionReport.blockedLayoutIDs.contains(layout.id)
         } : []
 
@@ -365,8 +378,26 @@ final class WorkspaceRunner: @unchecked Sendable {
         )
 
         if completedUnits < totalActionCount {
-            sleep(configuration.actionDelay)
+            sleep(effectiveActionDelay())
         }
+    }
+
+    private func effectiveActionDelay() -> TimeInterval {
+        max(0, launchDelayProvider() ?? configuration.actionDelay)
+    }
+
+    private func effectiveTerminalAction(_ action: TerminalCommandAction) -> TerminalCommandAction {
+        guard terminalConfirmationPreferenceProvider(), !action.requiresConfirmation else {
+            return action
+        }
+
+        return TerminalCommandAction(
+            id: action.id,
+            name: action.name,
+            command: action.command,
+            workingDirectory: action.workingDirectory,
+            requiresConfirmation: true
+        )
     }
 
     private func workspaceValidationFailure(workspace: Workspace, message: String) -> ActionLaunchResult {

@@ -13,7 +13,7 @@ struct ReopenApp: App {
 
 private struct SettingsPlaceholderView: View {
     var body: some View {
-        Text("Reopen settings are coming in a later phase.")
+        Text("Reopen settings are available from the menu bar item.")
             .frame(width: 360, height: 120)
             .padding()
     }

@@ -3,22 +3,26 @@ import Foundation
 
 final class TerminalManager {
     typealias ConfirmationProvider = (TerminalCommandAction, TerminalCommandSafety.Assessment) -> Bool
+    typealias TerminalPreferenceProvider = @Sendable () -> PreferredTerminalApp
 
     private let fileManager: FileManager
     private let safety: TerminalCommandSafety
     private let executor: AppleScriptTerminalExecutor
     private let confirmationProvider: ConfirmationProvider
+    private let preferredTerminalProvider: TerminalPreferenceProvider
 
     init(
         fileManager: FileManager = .default,
         safety: TerminalCommandSafety = TerminalCommandSafety(),
         executor: AppleScriptTerminalExecutor = AppleScriptTerminalExecutor(),
-        confirmationProvider: @escaping ConfirmationProvider = TerminalManager.presentConfirmation
+        confirmationProvider: @escaping ConfirmationProvider = TerminalManager.presentConfirmation,
+        preferredTerminalProvider: @escaping TerminalPreferenceProvider = { .terminal }
     ) {
         self.fileManager = fileManager
         self.safety = safety
         self.executor = executor
         self.confirmationProvider = confirmationProvider
+        self.preferredTerminalProvider = preferredTerminalProvider
     }
 
     func run(_ action: TerminalCommandAction) -> ActionLaunchResult {
@@ -68,7 +72,12 @@ final class TerminalManager {
             }
         }
 
-        let executionResult = executor.run(command: command, workingDirectory: workingDirectory)
+        let terminalApp = preferredTerminalProvider()
+        let executionResult = executor.run(
+            command: command,
+            workingDirectory: workingDirectory,
+            terminalApp: terminalApp
+        )
         guard executionResult.succeeded else {
             let errorCode = executionResult.errorCode ?? "terminal_command_failed"
             return failure(
@@ -86,7 +95,7 @@ final class TerminalManager {
             actionType: WorkspaceActionType.terminalCommand.rawValue,
             title: title,
             status: .succeeded,
-            message: "Started \(title) in Terminal."
+            message: "Started \(title) in \(terminalApp.displayName)."
         )
     }
 

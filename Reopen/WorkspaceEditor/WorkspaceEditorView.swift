@@ -9,12 +9,14 @@ struct WorkspaceEditorView: View {
     let saveButtonTitle: String
     let onSave: (WorkspaceCreationDraft) throws -> Void
     let onCancel: () -> Void
+    private let settings: AppSettings
     private let windowManager: WindowManager
 
     init(
         title: String,
         saveButtonTitle: String,
         draft: WorkspaceCreationDraft = WorkspaceCreationDraft(),
+        settings: AppSettings = AppSettings(),
         windowManager: WindowManager = WindowManager(),
         onSave: @escaping (WorkspaceCreationDraft) throws -> Void,
         onCancel: @escaping () -> Void
@@ -22,6 +24,7 @@ struct WorkspaceEditorView: View {
         self.title = title
         self.saveButtonTitle = saveButtonTitle
         self._draft = State(initialValue: draft)
+        self.settings = settings
         self.windowManager = windowManager
         self.onSave = onSave
         self.onCancel = onCancel
@@ -194,14 +197,19 @@ struct WorkspaceEditorView: View {
             }
 
             Button {
-                draft.actions.append(.terminalCommand())
+                draft.actions.append(.terminalCommand(
+                    requiresConfirmation: settings.askBeforeRunningTerminalCommands
+                ))
             } label: {
                 Label("Add Terminal Command", systemImage: "terminal")
             }
 
             Button {
                 if let folder = FolderPicker.pickFolder() {
-                    draft.actions.append(.vsCodeProject(path: folder.path))
+                    draft.actions.append(.vsCodeProject(
+                        path: folder.path,
+                        editor: settings.preferredCodeEditor.rawValue
+                    ))
                 }
             } label: {
                 Label("Add VS Code Project", systemImage: "chevron.left.forwardslash.chevron.right")
