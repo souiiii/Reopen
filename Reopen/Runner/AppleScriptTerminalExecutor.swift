@@ -3,11 +3,12 @@ import Foundation
 struct TerminalExecutionResult: Equatable {
     var succeeded: Bool
     var errorMessage: String?
+    var errorCode: String?
 
-    static let success = TerminalExecutionResult(succeeded: true, errorMessage: nil)
+    static let success = TerminalExecutionResult(succeeded: true, errorMessage: nil, errorCode: nil)
 
-    static func failure(_ message: String) -> TerminalExecutionResult {
-        TerminalExecutionResult(succeeded: false, errorMessage: message)
+    static func failure(_ message: String, errorCode: String? = nil) -> TerminalExecutionResult {
+        TerminalExecutionResult(succeeded: false, errorMessage: message, errorCode: errorCode)
     }
 }
 
@@ -62,9 +63,23 @@ final class AppleScriptTerminalExecutor {
 
         if let errorInfo {
             let message = errorInfo[NSAppleScript.errorMessage] as? String
-            return .failure(message ?? "Terminal AppleScript failed.")
+            return .failure(
+                message ?? "Terminal AppleScript failed.",
+                errorCode: permissionErrorCode(for: message)
+            )
         }
 
         return .success
+    }
+
+    private static func permissionErrorCode(for message: String?) -> String? {
+        let normalized = message?.lowercased() ?? ""
+        if normalized.contains("not authorized")
+            || normalized.contains("not permitted")
+            || normalized.contains("not allowed") {
+            return "permission_automation_missing"
+        }
+
+        return nil
     }
 }

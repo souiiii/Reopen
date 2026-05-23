@@ -7,19 +7,22 @@ final class AppEnvironment {
     let workspaceStore: WorkspaceStore
     let workspaceManager: WorkspaceManager
     let workspaceRunner: WorkspaceRunner
+    let permissionManager: PermissionManager
 
     private init(
         appState: AppState,
         windowPresenter: AppWindowPresenter,
         workspaceStore: WorkspaceStore,
         workspaceManager: WorkspaceManager,
-        workspaceRunner: WorkspaceRunner
+        workspaceRunner: WorkspaceRunner,
+        permissionManager: PermissionManager
     ) {
         self.appState = appState
         self.windowPresenter = windowPresenter
         self.workspaceStore = workspaceStore
         self.workspaceManager = workspaceManager
         self.workspaceRunner = workspaceRunner
+        self.permissionManager = permissionManager
     }
 
     static func bootstrap() -> AppEnvironment {
@@ -35,7 +38,11 @@ final class AppEnvironment {
             workspaceStore: workspaceStore,
             initialWorkspaces: loadResult.workspaces
         )
+        let permissionManager = PermissionManager()
         let workspaceRunner = WorkspaceRunner(
+            permissionChecker: WorkspacePermissionChecker(checkPermissions: { workspace in
+                permissionManager.checkPermissions(for: workspace)
+            }),
             appLauncher: AppLauncher(),
             fileFolderOpener: FileFolderOpener(),
             urlOpener: URLOpener(),
@@ -57,7 +64,8 @@ final class AppEnvironment {
             windowPresenter: AppWindowPresenter(),
             workspaceStore: workspaceStore,
             workspaceManager: workspaceManager,
-            workspaceRunner: workspaceRunner
+            workspaceRunner: workspaceRunner,
+            permissionManager: permissionManager
         )
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct LaunchResultView: View {
     let result: WorkspaceLaunchResult
     let onRepair: (ActionLaunchResult) -> Void
+    let onOpenPermissionSettings: (PermissionKind) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -13,6 +14,13 @@ struct LaunchResultView: View {
 
                 Text(result.hasFailures ? "Some actions need attention." : "Launch actions finished.")
                     .foregroundStyle(.secondary)
+            }
+
+            if !permissionKinds.isEmpty {
+                PermissionOnboardingView(
+                    kinds: permissionKinds,
+                    onOpenSettings: onOpenPermissionSettings
+                )
             }
 
             List(result.allResults) { actionResult in
@@ -44,6 +52,14 @@ struct LaunchResultView: View {
         .padding(24)
     }
 
+    private var permissionKinds: [PermissionKind] {
+        PermissionKind.allCases.filter { kind in
+            kind != .fileAccess && result.allResults.contains { actionResult in
+                PermissionKind.kind(for: actionResult.errorCode) == kind
+            }
+        }
+    }
+
     private func statusLabel(for status: ActionLaunchStatus) -> String {
         switch status {
         case .succeeded:
@@ -56,6 +72,9 @@ struct LaunchResultView: View {
     }
 
     private func canRepair(_ actionResult: ActionLaunchResult) -> Bool {
-        actionResult.errorCode == "missing_file" || actionResult.errorCode == "missing_folder"
+        actionResult.errorCode == "missing_file"
+            || actionResult.errorCode == "missing_folder"
+            || actionResult.errorCode == "permission_file_access_missing"
     }
+
 }

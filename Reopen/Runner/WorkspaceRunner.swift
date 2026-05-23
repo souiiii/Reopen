@@ -125,11 +125,28 @@ final class WorkspaceRunner: @unchecked Sendable {
             progressHandler: progressHandler
         )
 
-        for permissionResult in permissionChecker.check(workspace) {
+        let permissionReport = permissionChecker.check(workspace)
+        for permissionResult in permissionReport.actionResults {
             append(permissionResult, to: &result)
         }
+        for permissionResult in permissionReport.layoutResults {
+            appendLayout(permissionResult, to: &result)
+        }
 
-        for appAction in appActions(in: workspace) {
+        completedUnits += permissionReport.blockedActionIDs.count + permissionReport.blockedLayoutIDs.count
+        publishProgress(
+            workspace: workspace,
+            stage: .checkingPermissions,
+            message: permissionReport.actionResults.isEmpty && permissionReport.layoutResults.isEmpty
+                ? "Permissions look ready."
+                : "Some permissions need attention.",
+            result: result,
+            completedUnits: completedUnits,
+            totalUnits: totalUnitCount,
+            progressHandler: progressHandler
+        )
+
+        for appAction in appActions(in: workspace) where !permissionReport.blockedActionIDs.contains(appAction.id) {
             append(appLauncher.launch(appAction), to: &result)
             completedUnits += 1
             publishAndDelayIfNeeded(
@@ -144,7 +161,7 @@ final class WorkspaceRunner: @unchecked Sendable {
             )
         }
 
-        for fileAction in fileActions(in: workspace) {
+        for fileAction in fileActions(in: workspace) where !permissionReport.blockedActionIDs.contains(fileAction.id) {
             append(fileFolderOpener.openFile(fileAction), to: &result)
             completedUnits += 1
             publishAndDelayIfNeeded(
@@ -159,7 +176,7 @@ final class WorkspaceRunner: @unchecked Sendable {
             )
         }
 
-        for folderAction in folderActions(in: workspace) {
+        for folderAction in folderActions(in: workspace) where !permissionReport.blockedActionIDs.contains(folderAction.id) {
             append(fileFolderOpener.openFolder(folderAction), to: &result)
             completedUnits += 1
             publishAndDelayIfNeeded(
@@ -174,7 +191,7 @@ final class WorkspaceRunner: @unchecked Sendable {
             )
         }
 
-        for urlAction in urlActions(in: workspace) {
+        for urlAction in urlActions(in: workspace) where !permissionReport.blockedActionIDs.contains(urlAction.id) {
             append(urlOpener.open(urlAction), to: &result)
             completedUnits += 1
             publishAndDelayIfNeeded(
@@ -189,7 +206,7 @@ final class WorkspaceRunner: @unchecked Sendable {
             )
         }
 
-        for codeProjectAction in codeProjectActions(in: workspace) {
+        for codeProjectAction in codeProjectActions(in: workspace) where !permissionReport.blockedActionIDs.contains(codeProjectAction.id) {
             append(vsCodeLauncher.open(codeProjectAction), to: &result)
             completedUnits += 1
             publishAndDelayIfNeeded(
@@ -204,7 +221,7 @@ final class WorkspaceRunner: @unchecked Sendable {
             )
         }
 
-        for terminalAction in terminalActions(in: workspace) {
+        for terminalAction in terminalActions(in: workspace) where !permissionReport.blockedActionIDs.contains(terminalAction.id) {
             append(terminalManager.run(terminalAction), to: &result)
             completedUnits += 1
             publishAndDelayIfNeeded(
@@ -229,7 +246,11 @@ final class WorkspaceRunner: @unchecked Sendable {
             append(skippedResult, to: &result)
         }
 
-        if !workspace.windowLayouts.isEmpty {
+        let restorableLayouts = workspace.windowLayouts.filter { layout in
+            !permissionReport.blockedLayoutIDs.contains(layout.id)
+        }
+
+        if !restorableLayouts.isEmpty {
             publishProgress(
                 workspace: workspace,
                 stage: .waitingForWindows,
@@ -241,7 +262,7 @@ final class WorkspaceRunner: @unchecked Sendable {
             )
             sleep(configuration.layoutDelay)
 
-            for layoutResult in windowLayoutRestorer.restore(workspace.windowLayouts) {
+            for layoutResult in windowLayoutRestorer.restore(restorableLayouts) {
                 appendLayout(layoutResult, to: &result)
                 completedUnits += 1
                 publishProgress(

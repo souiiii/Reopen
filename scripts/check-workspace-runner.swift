@@ -194,7 +194,7 @@ enum WorkspaceRunnerChecks {
     private static func progressSnapshotsArePublished(appURL: URL, fileURL: URL) throws {
         let snapshotRecorder = SnapshotRecorder()
         let runner = WorkspaceRunner(
-            permissionChecker: WorkspacePermissionChecker(checkPermissions: { _ in [] }),
+            permissionChecker: WorkspacePermissionChecker(checkPermissions: { _ in .empty }),
             appLauncher: AppLauncher(openApplication: { _ in true }),
             fileFolderOpener: FileFolderOpener(openResource: { _ in true }),
             urlOpener: URLOpener(openURL: { _ in true }),

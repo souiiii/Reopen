@@ -132,7 +132,8 @@ final class MenuBarController: NSObject {
                     self.environment.windowPresenter.closeLaunchProgress(workspaceID: workspace.id)
                     self.environment.windowPresenter.showLaunchResult(
                         result,
-                        workspaceManager: self.environment.workspaceManager
+                        workspaceManager: self.environment.workspaceManager,
+                        permissionManager: self.environment.permissionManager
                     )
                 }
             }

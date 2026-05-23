@@ -19,6 +19,7 @@ swiftc \
   "$ROOT_DIR/Reopen/Runner/URLOpener.swift" \
   "$ROOT_DIR/Reopen/Runner/VSCodeLauncher.swift" \
   "$ROOT_DIR/Reopen/Runner/WorkspacePermissionChecker.swift" \
+  "$ROOT_DIR/Reopen/Permissions/PermissionKind.swift" \
   "$ROOT_DIR/Reopen/Runner/TerminalCommandSafety.swift" \
   "$ROOT_DIR/Reopen/Runner/AppleScriptTerminalExecutor.swift" \
   "$ROOT_DIR/Reopen/Runner/TerminalManager.swift" \

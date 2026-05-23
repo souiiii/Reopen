@@ -32,6 +32,8 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright 2026 Reopen. All rights reserved.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Reopen uses Automation to control Terminal.app only when you run terminal commands saved in a workspace.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

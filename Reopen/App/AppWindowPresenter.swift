@@ -64,7 +64,11 @@ final class AppWindowPresenter {
         controller.showWindow(nil)
     }
 
-    func showLaunchResult(_ result: WorkspaceLaunchResult, workspaceManager: WorkspaceManager) {
+    func showLaunchResult(
+        _ result: WorkspaceLaunchResult,
+        workspaceManager: WorkspaceManager,
+        permissionManager: PermissionManager
+    ) {
         let controller = LaunchResultWindowController(
             result: result,
             onRepair: { [weak self] actionResult in
@@ -73,6 +77,9 @@ final class AppWindowPresenter {
                     workspaceID: result.workspaceID,
                     workspaceManager: workspaceManager
                 )
+            },
+            onOpenPermissionSettings: { kind in
+                _ = permissionManager.openSettings(for: kind)
             },
             onClose: { [weak self] in
                 self?.launchResultControllers[result.id] = nil
@@ -146,13 +153,13 @@ final class AppWindowPresenter {
             return
         }
 
-        switch actionResult.errorCode {
-        case "missing_file":
+        switch (actionResult.errorCode, actionResult.actionType) {
+        case ("missing_file", _), ("permission_file_access_missing", WorkspaceActionType.openFile.rawValue):
             guard let repairedAction = FilePicker.pickFile()?.makeRepairAction(for: actionID) else {
                 return
             }
             replaceAction(id: actionID, with: repairedAction, in: &workspace)
-        case "missing_folder":
+        case ("missing_folder", _), ("permission_file_access_missing", WorkspaceActionType.openFolder.rawValue):
             guard let repairedAction = FolderPicker.pickFolderAction()?.makeRepairAction(for: actionID) else {
                 return
             }

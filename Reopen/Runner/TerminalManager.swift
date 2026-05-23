@@ -70,11 +70,14 @@ final class TerminalManager {
 
         let executionResult = executor.run(command: command, workingDirectory: workingDirectory)
         guard executionResult.succeeded else {
+            let errorCode = executionResult.errorCode ?? "terminal_command_failed"
             return failure(
                 action: action,
                 title: title,
-                message: executionResult.errorMessage ?? "Terminal could not start the command.",
-                errorCode: "terminal_command_failed"
+                message: errorCode == "permission_automation_missing"
+                    ? PermissionKind.automation.explanation
+                    : executionResult.errorMessage ?? "Terminal could not start the command.",
+                errorCode: errorCode
             )
         }
 

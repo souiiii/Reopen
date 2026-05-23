@@ -9,13 +9,15 @@ final class LaunchResultWindowController: NSWindowController, NSWindowDelegate {
     init(
         result: WorkspaceLaunchResult,
         onRepair: @escaping (ActionLaunchResult) -> Void,
+        onOpenPermissionSettings: @escaping (PermissionKind) -> Void,
         onClose: @escaping () -> Void
     ) {
         self.onClose = onClose
 
         let window = NSWindow(contentViewController: NSHostingController(rootView: LaunchResultView(
             result: result,
-            onRepair: onRepair
+            onRepair: onRepair,
+            onOpenPermissionSettings: onOpenPermissionSettings
         )))
         window.title = "\(result.workspaceName) Launch Result"
         window.styleMask = [.titled, .closable, .miniaturizable]
