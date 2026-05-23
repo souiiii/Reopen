@@ -153,6 +153,12 @@ final class WorkspaceManager {
         publish(loadedWorkspaces)
     }
 
+    func addImportedWorkspaces(_ importedWorkspaces: [Workspace]) throws {
+        let proposedWorkspaces = workspaces + importedWorkspaces
+        try validateAndPersist(proposedWorkspaces)
+        publish(proposedWorkspaces)
+    }
+
     func replaceWorkspaces(_ replacementWorkspaces: [Workspace], confirmed: Bool) throws {
         guard confirmed else {
             throw WorkspaceManagerError.replaceRequiresConfirmation

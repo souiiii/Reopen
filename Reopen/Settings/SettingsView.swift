@@ -18,7 +18,10 @@ struct SettingsView: View {
                 appBehaviorSection
                 launchSection
                 defaultsSection
+                privacySection
+                licenseSection
                 dataSection
+                importSummarySection
             }
             .formStyle(.grouped)
             .padding(.top, 4)
@@ -137,6 +140,47 @@ struct SettingsView: View {
         }
     }
 
+    private var privacySection: some View {
+        Section("Privacy") {
+            Toggle(
+                "Include terminal command output in logs",
+                isOn: Binding(
+                    get: { settingsManager.settings.includeTerminalCommandOutputInLogs },
+                    set: { value in settingsManager.setIncludeTerminalCommandOutputInLogs(value) }
+                )
+            )
+            Text("Reopen does not log terminal command output unless this is enabled.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var licenseSection: some View {
+        Section("License") {
+            Picker(
+                "Plan",
+                selection: Binding(
+                    get: { settingsManager.settings.licenseTier.rawValue },
+                    set: { rawValue in
+                        guard let tier = LicenseTier(rawValue: rawValue) else {
+                            return
+                        }
+
+                        settingsManager.setLicenseTier(tier)
+                    }
+                )
+            ) {
+                ForEach(LicenseTier.allCases, id: \.rawValue) { tier in
+                    Text(tier.title).tag(tier.rawValue)
+                }
+            }
+
+            Text(LicenseManager().planSummary(for: settingsManager.settings.licenseTier))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private var dataSection: some View {
         Section("Data") {
             HStack(spacing: 10) {
@@ -154,6 +198,35 @@ struct SettingsView: View {
                     confirmation = .reset
                 } label: {
                     Label("Reset App Data", systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var importSummarySection: some View {
+        if let summary = settingsManager.lastImportSummary {
+            Section("Import Summary") {
+                if summary.importedWorkspaces.isEmpty {
+                    Text("No workspaces were added.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(summary.importedWorkspaces) { workspace in
+                        HStack {
+                            Image(systemName: workspace.didRegenerateID ? "arrow.triangle.2.circlepath" : "checkmark.circle")
+                                .foregroundStyle(workspace.didRegenerateID ? .orange : .green)
+
+                            Text(workspace.name)
+
+                            Spacer()
+
+                            if workspace.didRegenerateID {
+                                Text("New ID")
+                                    .foregroundStyle(.secondary)
+                                    .font(.caption)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -212,8 +285,8 @@ struct SettingsView: View {
         case .importWorkspaces(let url):
             return Alert(
                 title: Text("Import Workspaces?"),
-                message: Text("Current workspaces will be replaced by the selected file."),
-                primaryButton: .destructive(Text("Import")) {
+                message: Text("Workspaces from the selected file will be added. Duplicate IDs will be regenerated."),
+                primaryButton: .default(Text("Import")) {
                     settingsManager.importWorkspaces(
                         from: url,
                         into: workspaceManager,

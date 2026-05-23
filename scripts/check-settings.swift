@@ -154,7 +154,7 @@ enum SettingsChecks {
 
         manager.importWorkspaces(from: exportURL, into: workspaceManager, confirmed: true)
         try check(manager.errorMessage == nil, "Confirmed import should not leave an error message.")
-        try check(workspaceManager.getAllWorkspaces() == [workspace], "Confirmed import should replace workspace data.")
+        try check(workspaceManager.getAllWorkspaces() == [workspace], "Confirmed import should add workspace data.")
     }
 
     private static func launchDefaultsAffectRunner() throws {

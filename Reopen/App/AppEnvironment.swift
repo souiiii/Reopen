@@ -10,6 +10,7 @@ final class AppEnvironment {
     let workspaceRunner: WorkspaceRunner
     let permissionManager: PermissionManager
     let settingsManager: SettingsManager
+    let errorLogger: ErrorLogger
 
     private init(
         appState: AppState,
@@ -19,7 +20,8 @@ final class AppEnvironment {
         workspaceManager: WorkspaceManager,
         workspaceRunner: WorkspaceRunner,
         permissionManager: PermissionManager,
-        settingsManager: SettingsManager
+        settingsManager: SettingsManager,
+        errorLogger: ErrorLogger
     ) {
         self.appState = appState
         self.windowPresenter = windowPresenter
@@ -29,6 +31,7 @@ final class AppEnvironment {
         self.workspaceRunner = workspaceRunner
         self.permissionManager = permissionManager
         self.settingsManager = settingsManager
+        self.errorLogger = errorLogger
     }
 
     static func bootstrap() -> AppEnvironment {
@@ -47,10 +50,12 @@ final class AppEnvironment {
         let loadResult = workspaceStore.loadWorkspaces()
         let settingsLoadResult = settingsStore.loadSettings()
         let settingsRuntime = SettingsRuntime(settings: settingsLoadResult.settings)
+        let errorLogger = ErrorLogger()
         let settingsManager = SettingsManager(
             settings: settingsLoadResult.settings,
             settingsStore: settingsStore,
-            runtime: settingsRuntime
+            runtime: settingsRuntime,
+            errorLogger: errorLogger
         )
         let workspaceManager = WorkspaceManager(
             workspaceStore: workspaceStore,
@@ -76,7 +81,7 @@ final class AppEnvironment {
                 settingsRuntime.settings.preferredTerminalApp
             }),
             windowLayoutRestorer: WindowLayoutRestorer(),
-            errorLogger: ErrorLogger(),
+            errorLogger: errorLogger,
             launchDelayProvider: {
                 settingsRuntime.settings.defaultLaunchDelay
             },
@@ -95,6 +100,9 @@ final class AppEnvironment {
         appState.replaceWorkspaces(workspaceManager.getAllWorkspaces())
         appState.storageErrorMessage = loadResult.storageError?.userFacingMessage
             ?? settingsLoadResult.storageError?.userFacingMessage
+        if let storageError = loadResult.storageError ?? settingsLoadResult.storageError {
+            errorLogger.logStorageError(storageError.userFacingMessage)
+        }
         settingsManager.applyCurrentSettings()
 
         return AppEnvironment(
@@ -105,7 +113,8 @@ final class AppEnvironment {
             workspaceManager: workspaceManager,
             workspaceRunner: workspaceRunner,
             permissionManager: permissionManager,
-            settingsManager: settingsManager
+            settingsManager: settingsManager,
+            errorLogger: errorLogger
         )
     }
 }

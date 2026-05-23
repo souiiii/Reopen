@@ -34,7 +34,7 @@ Implemented.
 
 ## Import and Export Scope
 
-Phase 18 provides settings-screen import and export for all workspace data. Import replaces the current workspace list after confirmation. Phase 19 will expand this with richer import summaries, duplicate ID handling, individual workspace export, and stricter unsafe-file rejection.
+Phase 18 provides the settings-screen entry points for workspace data import and export. Phase 19 expands those flows with additive imports, richer import summaries, duplicate ID handling, individual workspace export, and stricter unsafe-file rejection.
 
 ## Acceptance Criteria Mapping
 

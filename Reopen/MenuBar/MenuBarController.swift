@@ -63,6 +63,10 @@ final class MenuBarController: NSObject {
             let emptyItem = NSMenuItem(title: MenuBarCommands.noWorkspacesTitle, action: nil, keyEquivalent: "")
             emptyItem.isEnabled = false
             menu.addItem(emptyItem)
+
+            let hintItem = NSMenuItem(title: MenuBarCommands.noWorkspacesHint, action: nil, keyEquivalent: "")
+            hintItem.isEnabled = false
+            menu.addItem(hintItem)
         } else {
             for workspace in environment.appState.workspaces {
                 let item = NSMenuItem(title: workspace.name, action: #selector(launchWorkspace(_:)), keyEquivalent: "")
@@ -151,7 +155,8 @@ final class MenuBarController: NSObject {
         environment.windowPresenter.showWorkspaceManagement(
             appState: environment.appState,
             workspaceManager: environment.workspaceManager,
-            settings: environment.settingsManager.settings
+            settings: environment.settingsManager.settings,
+            settingsManager: environment.settingsManager
         )
     }
 

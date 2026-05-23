@@ -57,12 +57,14 @@ final class SettingsManager: ObservableObject {
     @Published private(set) var settings: AppSettings
     @Published var statusMessage: String?
     @Published var errorMessage: String?
+    @Published var lastImportSummary: WorkspaceImportSummary?
 
     private let settingsStore: SettingsStore
     private let runtime: SettingsRuntime
     private let launchAtLoginService: any LaunchAtLoginManaging
     private let dockIconService: any DockIconManaging
     private let importExportManager: WorkspaceImportExportManager
+    private let errorLogger: ErrorLogger?
 
     init(
         settings: AppSettings,
@@ -70,7 +72,8 @@ final class SettingsManager: ObservableObject {
         runtime: SettingsRuntime,
         launchAtLoginService: (any LaunchAtLoginManaging)? = nil,
         dockIconService: (any DockIconManaging)? = nil,
-        importExportManager: WorkspaceImportExportManager = WorkspaceImportExportManager()
+        importExportManager: WorkspaceImportExportManager = WorkspaceImportExportManager(),
+        errorLogger: ErrorLogger? = nil
     ) {
         self.settings = settings
         self.settingsStore = settingsStore
@@ -78,6 +81,7 @@ final class SettingsManager: ObservableObject {
         self.launchAtLoginService = launchAtLoginService ?? LaunchAtLoginService()
         self.dockIconService = dockIconService ?? DockIconService()
         self.importExportManager = importExportManager
+        self.errorLogger = errorLogger
         self.runtime.update(settings)
     }
 
@@ -132,11 +136,41 @@ final class SettingsManager: ObservableObject {
         }
     }
 
+    func setIncludeTerminalCommandOutputInLogs(_ enabled: Bool) {
+        updateSettings("Logging setting updated.") { settings in
+            settings.includeTerminalCommandOutputInLogs = enabled
+        }
+    }
+
+    func setLicenseTier(_ licenseTier: LicenseTier) {
+        updateSettings("License setting updated.") { settings in
+            settings.licenseTier = licenseTier
+        }
+    }
+
+    func completeOnboarding() {
+        updateSettings("Onboarding completed.") { settings in
+            settings.hasCompletedOnboarding = true
+        }
+    }
+
     func exportWorkspaces(from workspaceManager: WorkspaceManager, to url: URL) {
         do {
             try importExportManager.exportWorkspaces(workspaceManager.getAllWorkspaces(), to: url)
             clearError()
+            lastImportSummary = nil
             statusMessage = "Exported workspace data."
+        } catch {
+            report(error)
+        }
+    }
+
+    func exportWorkspace(_ workspace: Workspace, to url: URL) {
+        do {
+            try importExportManager.exportWorkspace(workspace, to: url)
+            clearError()
+            lastImportSummary = nil
+            statusMessage = "Exported \(workspace.name)."
         } catch {
             report(error)
         }
@@ -152,10 +186,14 @@ final class SettingsManager: ObservableObject {
                 throw SettingsManagerError.importRequiresConfirmation
             }
 
-            let result = try importExportManager.importWorkspaces(from: url)
-            try workspaceManager.replaceWorkspaces(result.workspaces, confirmed: true)
+            let result = try importExportManager.importWorkspaces(
+                from: url,
+                existingWorkspaces: workspaceManager.getAllWorkspaces()
+            )
+            try workspaceManager.addImportedWorkspaces(result.workspaces)
             clearError()
-            statusMessage = "Imported \(result.importedCount) workspace\(result.importedCount == 1 ? "" : "s")."
+            lastImportSummary = result.summary
+            statusMessage = result.summary.summaryText
         } catch {
             report(error)
         }
@@ -172,6 +210,7 @@ final class SettingsManager: ObservableObject {
             try applyAndPersist(defaults, previousSettings: settings)
             publish(defaults)
             clearError()
+            lastImportSummary = nil
             statusMessage = "App data reset."
         } catch {
             report(error)
@@ -226,13 +265,16 @@ final class SettingsManager: ObservableObject {
 
     private func report(_ error: Error) {
         statusMessage = nil
+        lastImportSummary = nil
 
         if let settingsError = error as? SettingsManagerError {
             errorMessage = settingsError.userFacingMessage
         } else if let importExportError = error as? WorkspaceImportExportError {
             errorMessage = importExportError.userFacingMessage
+            errorLogger?.logImportExportError(importExportError.userFacingMessage)
         } else if let storageError = error as? StorageError {
             errorMessage = storageError.userFacingMessage
+            errorLogger?.logStorageError(storageError.userFacingMessage)
         } else if let workspaceError = error as? WorkspaceManagerError {
             errorMessage = workspaceError.userFacingMessage
         } else {

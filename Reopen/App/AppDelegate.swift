@@ -10,12 +10,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let environment = AppEnvironment.bootstrap()
         let menuBarController = MenuBarController(environment: environment)
         menuBarController.install()
+        environment.errorLogger.logAppStarted()
+
+        if environment.appState.workspaces.isEmpty && !environment.settingsManager.settings.hasCompletedOnboarding {
+            environment.windowPresenter.showOnboarding(
+                workspaceManager: environment.workspaceManager,
+                settingsManager: environment.settingsManager
+            )
+        }
 
         self.environment = environment
         self.menuBarController = menuBarController
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        environment?.errorLogger.logAppWillTerminate()
         menuBarController?.uninstall()
     }
 }

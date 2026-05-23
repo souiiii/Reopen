@@ -8,6 +8,7 @@ final class AppWindowPresenter {
     private var workspaceEditingControllers: [UUID: WorkspaceEditorWindowController] = [:]
     private var workspaceManagementController: ManageWorkspacesWindowController?
     private var settingsController: SettingsWindowController?
+    private var onboardingController: OnboardingWindowController?
     private var launchProgressControllers: [UUID: LaunchProgressWindowController] = [:]
     private var launchResultControllers: [UUID: LaunchResultWindowController] = [:]
 
@@ -54,7 +55,8 @@ final class AppWindowPresenter {
     func showWorkspaceManagement(
         appState: AppState,
         workspaceManager: WorkspaceManager,
-        settings: AppSettings = AppSettings()
+        settings: AppSettings = AppSettings(),
+        settingsManager: SettingsManager? = nil
     ) {
         if let existingController = workspaceManagementController {
             existingController.showWindow(nil)
@@ -70,6 +72,9 @@ final class AppWindowPresenter {
                     workspaceManager: workspaceManager,
                     settings: settings
                 )
+            },
+            onExport: { workspace, url in
+                settingsManager?.exportWorkspace(workspace, to: url)
             },
             onClose: { [weak self] in
                 self?.workspaceManagementController = nil
@@ -96,6 +101,39 @@ final class AppWindowPresenter {
         settingsController = controller
         controller.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func showOnboarding(
+        workspaceManager: WorkspaceManager,
+        settingsManager: SettingsManager
+    ) {
+        if let existingController = onboardingController {
+            existingController.showWindow(nil)
+            return
+        }
+
+        let controller = OnboardingWindowController(
+            onCreateWorkspace: { [weak self] in
+                self?.showWorkspaceCreation(
+                    workspaceManager: workspaceManager,
+                    settings: settingsManager.settings
+                )
+            },
+            onOpenSettings: { [weak self] in
+                self?.showSettings(
+                    settingsManager: settingsManager,
+                    workspaceManager: workspaceManager
+                )
+            },
+            onDone: {
+                settingsManager.completeOnboarding()
+            },
+            onClose: { [weak self] in
+                self?.onboardingController = nil
+            }
+        )
+        onboardingController = controller
+        controller.showWindow(nil)
     }
 
     func showLaunchResult(

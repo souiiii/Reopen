@@ -34,10 +34,11 @@ struct LaunchProgressView: View {
             } else {
                 List(state.snapshot.allResults) { actionResult in
                     HStack(alignment: .top, spacing: 12) {
-                        Text(statusLabel(for: actionResult.status))
+                        Label(statusLabel(for: actionResult.status), systemImage: statusIcon(for: actionResult.status))
                             .font(.caption)
                             .fontWeight(.semibold)
-                            .frame(width: 72, alignment: .leading)
+                            .foregroundStyle(statusColor(for: actionResult.status))
+                            .frame(width: 92, alignment: .leading)
 
                         VStack(alignment: .leading, spacing: 3) {
                             Text(actionResult.title)
@@ -64,6 +65,28 @@ struct LaunchProgressView: View {
             return "Failed"
         case .skipped:
             return "Skipped"
+        }
+    }
+
+    private func statusIcon(for status: ActionLaunchStatus) -> String {
+        switch status {
+        case .succeeded:
+            return "checkmark.circle.fill"
+        case .failed:
+            return "xmark.octagon.fill"
+        case .skipped:
+            return "minus.circle.fill"
+        }
+    }
+
+    private func statusColor(for status: ActionLaunchStatus) -> Color {
+        switch status {
+        case .succeeded:
+            return .green
+        case .failed:
+            return .red
+        case .skipped:
+            return .orange
         }
     }
 }
